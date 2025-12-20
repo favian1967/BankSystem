@@ -2,6 +2,7 @@ package com.company.bank_system.service;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -9,27 +10,34 @@ import java.util.Date;
 
 @Service
 public class JWTService {
-    // TODO Секретный ключ (в проде хранить в application.yml)
-    private final String SECRET = "myverysecretkeythatissuperlongandstrong12345678901234567890";
-    private final SecretKey key = Keys.hmacShaKeyFor(SECRET.getBytes());
+
+    private final SecretKey key;
+    private final long expiration;
+
+    public JWTService(@Value("${jwt.secret}") String secret,
+                      @Value("${jwt.expiration}") long expiration) {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        this.expiration = expiration;
+    }
+
 
     // Генерация токена
     public String generateToken(String email) {
         return Jwts.builder()
-                .subject(email)
-                .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 86400000)) //24h
-        .signWith(key)
-                .compact();
+                .subject(email) // Кладём email внутрь токена
+                .issuedAt(new Date()) // Дата создания
+                .expiration(new Date(System.currentTimeMillis() + 86400000)) // Срок действия (24 часа)
+        .signWith(key) // Подписываем секретным ключом
+                .compact();   // Превращаем в строку
     }
 
     public String extractEmail(String token) {
         return Jwts.parser()
-                .verifyWith(key)
+                .verifyWith(key) // Проверяем подпись
                 .build()
-                .parseSignedClaims(token)
+                .parseSignedClaims(token) // Разбираем токен
                 .getPayload()
-                .getSubject();
+                .getSubject(); // Достаём email
     }
 
     public boolean isValid(String token) {
