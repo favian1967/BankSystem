@@ -1,6 +1,7 @@
 package com.company.bank_system.entity;
 
 
+import com.company.bank_system.entity.enums.User.UserStatus;
 import jakarta.persistence.*;
 
 import lombok.Getter;
@@ -42,7 +43,8 @@ public class User {
     @Column(unique = true)
     private String passportNumber;
     @Column(nullable = false)
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private UserStatus status;
     @Column(updatable = false)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

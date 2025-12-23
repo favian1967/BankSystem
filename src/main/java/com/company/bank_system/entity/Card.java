@@ -1,5 +1,8 @@
 package com.company.bank_system.entity;
 
+import com.company.bank_system.entity.enums.Cards.CardPaymentSystem;
+import com.company.bank_system.entity.enums.Cards.CardStatus;
+import com.company.bank_system.entity.enums.Cards.CardType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -39,13 +42,13 @@ public class Card {
 
     @Column(nullable = false)
     private LocalDate expiryDate; // Срок действия
-
-    private String cardType; // DEBIT, CREDIT
-
-    private String paymentSystem; // VISA, MASTERCARD, MIR
-
+    @Enumerated(EnumType.STRING)
+    private CardType cardType; // DEBIT, CREDIT
+    @Enumerated(EnumType.STRING)
+    private CardPaymentSystem paymentSystem; // VISA, MASTERCARD, MIR
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status; // ACTIVE, BLOCKED, EXPIRED
+    private CardStatus status; // ACTIVE, BLOCKED, EXPIRED
 
     @Column(updatable = false)
     private LocalDateTime createdAt;

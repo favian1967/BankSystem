@@ -4,6 +4,7 @@ package com.company.bank_system.service;
 import com.company.bank_system.dto.LoginRequest;
 import com.company.bank_system.dto.RegisterRequest;
 import com.company.bank_system.entity.User;
+import com.company.bank_system.entity.enums.User.UserStatus;
 import com.company.bank_system.repo.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,7 +41,7 @@ public class AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.password()));
         user.setFirstName(request.firstName());
         user.setPhone(request.phone());
-        user.setStatus("ACTIVE");
+        user.setStatus(UserStatus.ACTIVE);
         user.setCreatedAt(LocalDateTime.now());
 
         userRepository.save(user);

@@ -1,6 +1,9 @@
 package com.company.bank_system.entity;
 
 
+import com.company.bank_system.entity.enums.Currency;
+import com.company.bank_system.entity.enums.Transaction.TransactionStatus;
+import com.company.bank_system.entity.enums.Transaction.TransactionType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -25,17 +28,18 @@ public class Transaction {
     @ManyToOne
     @JoinColumn(name = "to_account_id")
     private Account toAccount; // Куда (nullable для снятия)
-
-    private String transactionType; // TRANSFER, DEPOSIT, WITHDRAWAL, PAYMENT
+    @Enumerated(EnumType.STRING)
+    private TransactionType transactionType; // TRANSFER, DEPOSIT, WITHDRAWAL, PAYMENT
 
     @Column(nullable = false)
     private BigDecimal amount;
-
-    private String currency; // RUB, USD, EUR
+    @Enumerated(EnumType.STRING)
+    private Currency currency; // RUB, USD, EUR
     private String description;
 
     @Column(nullable = false)
-    private String status; // PENDING, COMPLETED, FAILED
+    @Enumerated(EnumType.STRING)
+    private TransactionStatus status; // PENDING, COMPLETED, FAILED
 
     @Column(updatable = false)
     private LocalDateTime createdAt;

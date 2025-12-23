@@ -1,6 +1,9 @@
 package com.company.bank_system.entity;
 
 
+import com.company.bank_system.entity.enums.Account.AccountStatus;
+import com.company.bank_system.entity.enums.Account.AccountType;
+import com.company.bank_system.entity.enums.Currency;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -33,14 +36,17 @@ public class Account {
     @Column(unique = true, nullable = false)
     private String accountNumber; // Генерируем автоматически
 
-    private String accountType; // CHECKING, SAVINGS, DEPOSIT
-    private String currency;    // RUB, USD, EUR
+    @Enumerated(EnumType.STRING)
+    private AccountType accountType; // CHECKING, SAVINGS, DEPOSIT
+    @Enumerated(EnumType.STRING)
+    private Currency currency;    // RUB, USD, EUR
 
     @Column(nullable = false)
     private BigDecimal balance; // Используем BigDecimal для денег!
 
     @Column(nullable = false)
-    private String status; // ACTIVE, BLOCKED, CLOSED
+    @Enumerated(EnumType.STRING)
+    private AccountStatus status; // ACTIVE, BLOCKED, CLOSED
 
     @Column(updatable = false)
     private LocalDateTime createdAt;
