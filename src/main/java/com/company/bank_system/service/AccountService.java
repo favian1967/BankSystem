@@ -43,23 +43,20 @@ public class AccountService {
 
         Account createdAccount = accountRepository.save(account);
 
-        return new AccountResponse(
-                account.getId(),
-                account.getAccountNumber(),
-                account.getAccountType(),
-                account.getCurrency(),
-                account.getBalance(),
-                account.getStatus()
-        );
+        return mapToResponse(createdAccount);
     }
 
 
-    public List<Account> getMyAccounts(){
+    public List<AccountResponse> getMyAccounts(){
         User currentUser = currentUserService.getCurrentUser();
-        return accountRepository.findByUser(currentUser);
+        List<Account> account = accountRepository.findByUser(currentUser);
+
+        return account.stream()
+                .map(this::mapToResponse)
+                .toList();
     }
 
-    public Account getAccountById(String accountId){
+    public AccountResponse getAccountById(Long accountId){
         User currentUser = currentUserService.getCurrentUser();
 
         Account account = accountRepository.findById(accountId)
@@ -69,16 +66,8 @@ public class AccountService {
             throw new RuntimeException("no your account");
         }
 
-        return account;
+        return mapToResponse(account);
     }
-
-
-
-
-
-
-
-
 
 
 
@@ -94,5 +83,32 @@ public class AccountService {
 
         return accountNumber;
     }
+
+
+
+    public Account getAccountEntityById(Long accountId) {
+        User currentUser = currentUserService.getCurrentUser();
+
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new RuntimeException("Счёт не найден"));
+
+        if (!account.getUser().getId().equals(currentUser.getId())) {
+            throw new RuntimeException("Доступ запрещён");
+        }
+
+        return account;
+    }
+
+    private AccountResponse mapToResponse(Account account) {
+        return new AccountResponse(
+                account.getId(),
+                account.getAccountNumber(),
+                account.getAccountType(),
+                account.getCurrency(),
+                account.getBalance(),
+                account.getStatus()
+        );
+    }
+
 
 }

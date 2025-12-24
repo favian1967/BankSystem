@@ -28,13 +28,13 @@ public class AccountController {
     }
 
     @GetMapping("/getAll")
-    public List<Account> getMyAccounts(){
+    public List<AccountResponse> getMyAccounts(){
         return accountService.getMyAccounts();
     }
 
     @GetMapping("/getById/{id}")
-    public Account getAccountById(
-            @PathVariable("id") String accountId
+    public AccountResponse getAccountById(
+            @PathVariable("id") Long accountId
             ){
         return accountService.getAccountById(accountId);
     }
