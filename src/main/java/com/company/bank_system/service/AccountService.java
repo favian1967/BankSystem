@@ -7,10 +7,10 @@ import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.Account.AccountStatus;
 import com.company.bank_system.entity.enums.Account.AccountType;
 import com.company.bank_system.entity.enums.Currency;
+import com.company.bank_system.exception.Exceptions.AccessDeniedException;
+import com.company.bank_system.exception.Exceptions.AccountNotFoundException;
 import com.company.bank_system.repo.AccountRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,7 +22,6 @@ public class AccountService {
 
     private final AccountRepository accountRepository;
     private final CurrentUserService currentUserService;
-
 
     public AccountService(AccountRepository accountRepository, CurrentUserService currentUserService) {
         this.accountRepository = accountRepository;
@@ -46,8 +45,7 @@ public class AccountService {
         return mapToResponse(createdAccount);
     }
 
-
-    public List<AccountResponse> getMyAccounts(){
+    public List<AccountResponse> getMyAccounts() {
         User currentUser = currentUserService.getCurrentUser();
         List<Account> account = accountRepository.findByUser(currentUser);
 
@@ -56,20 +54,21 @@ public class AccountService {
                 .toList();
     }
 
-    public AccountResponse getAccountById(Long accountId){
+    public AccountResponse getAccountById(Long accountId) {
         User currentUser = currentUserService.getCurrentUser();
 
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Счёт не найден"));
+                .orElseThrow(() -> new AccountNotFoundException(
+                        AccountNotFoundException.Type.ID,
+                        accountId.toString()
+                ));
 
-        if (!account.getUser().getId().equals(currentUser.getId())){
-            throw new RuntimeException("no your account");
+        if (!account.getUser().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("Access denied to account " + accountId);
         }
 
         return mapToResponse(account);
     }
-
-
 
     private String generateAccountNumber() {
         String accountNumber;
@@ -84,16 +83,17 @@ public class AccountService {
         return accountNumber;
     }
 
-
-
     public Account getAccountEntityById(Long accountId) {
         User currentUser = currentUserService.getCurrentUser();
 
         Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> new RuntimeException("Счёт не найден"));
+                .orElseThrow(() -> new AccountNotFoundException(
+                        AccountNotFoundException.Type.ID,
+                        accountId.toString()
+                ));
 
         if (!account.getUser().getId().equals(currentUser.getId())) {
-            throw new RuntimeException("Доступ запрещён");
+            throw new AccessDeniedException("Access denied to account " + accountId);
         }
 
         return account;
@@ -101,14 +101,19 @@ public class AccountService {
 
     public Account getAnyAccountById(Long accountId) {
         return accountRepository.findById(accountId)
-                .orElseThrow( () -> new RuntimeException(("Not found account")) );
+                .orElseThrow(() -> new AccountNotFoundException(
+                        AccountNotFoundException.Type.ID,
+                        accountId.toString()
+                ));
     }
 
     public Account getAccountByNumber(String accountNumber) {
         return accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow( () -> new RuntimeException(("Not found account")) );
+                .orElseThrow(() -> new AccountNotFoundException(
+                        AccountNotFoundException.Type.NUMBER,
+                        accountNumber
+                ));
     }
-
 
     private AccountResponse mapToResponse(Account account) {
         return new AccountResponse(
@@ -120,6 +125,4 @@ public class AccountService {
                 account.getStatus()
         );
     }
-
-
 }

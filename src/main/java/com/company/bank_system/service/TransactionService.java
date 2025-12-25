@@ -1,12 +1,13 @@
 package com.company.bank_system.service;
 
-
 import com.company.bank_system.dto.*;
 import com.company.bank_system.entity.Account;
 import com.company.bank_system.entity.Transaction;
-import com.company.bank_system.entity.enums.Currency;
 import com.company.bank_system.entity.enums.Transaction.TransactionStatus;
 import com.company.bank_system.entity.enums.Transaction.TransactionType;
+import com.company.bank_system.exception.Exceptions.CurrencyMismatchException;
+import com.company.bank_system.exception.Exceptions.InsufficientFundsException;
+import com.company.bank_system.exception.Exceptions.InvalidAmountException;
 import com.company.bank_system.repo.AccountRepository;
 import com.company.bank_system.repo.TransactionRepository;
 import jakarta.transaction.Transactional;
@@ -31,11 +32,10 @@ public class TransactionService {
 
     @Transactional
     public TransactionResponse deposit(DepositRequest depositRequest) {
-
         Account account = accountService.getAccountEntityById(depositRequest.accountId());
 
         if (depositRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Сумма должна быть больше 0");
+            throw new InvalidAmountException("Deposit amount must be greater than 0");
         }
 
         BigDecimal newBalance = account.getBalance().add(depositRequest.amount());
@@ -44,8 +44,8 @@ public class TransactionService {
         accountRepository.save(account);
 
         Transaction transaction = new Transaction();
-        transaction.setToAccount(account);          // Куда пришли деньги
-        transaction.setFromAccount(null);           // Откуда пришли (нет источника)
+        transaction.setToAccount(account);
+        transaction.setFromAccount(null);
         transaction.setTransactionType(TransactionType.DEPOSIT);
         transaction.setAmount(depositRequest.amount());
         transaction.setCurrency(account.getCurrency());
@@ -57,18 +57,22 @@ public class TransactionService {
         transactionRepository.save(transaction);
 
         return mapToResponse(transaction);
-
     }
 
     @Transactional
     public TransactionResponse withdraw(WithdrawRequest withdrawRequest) {
         Account account = accountService.getAccountEntityById(withdrawRequest.accountId());
+
         if (withdrawRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException(">0");
+            throw new InvalidAmountException("Withdrawal amount must be greater than 0");
         }
 
-        if(account.getBalance().compareTo(withdrawRequest.amount()) < 0){
-            throw new RuntimeException("Haven't money :(");
+        if (account.getBalance().compareTo(withdrawRequest.amount()) < 0) {
+            throw new InsufficientFundsException(
+                    account.getId(),
+                    withdrawRequest.amount(),
+                    account.getBalance()
+            );
         }
 
         BigDecimal newBalance = account.getBalance().subtract(withdrawRequest.amount());
@@ -77,8 +81,8 @@ public class TransactionService {
         accountRepository.save(account);
 
         Transaction transaction = new Transaction();
-        transaction.setToAccount(null);          // Куда пришли деньги
-        transaction.setFromAccount(account);           // Откуда пришли (нет источника)
+        transaction.setToAccount(null);
+        transaction.setFromAccount(account);
         transaction.setTransactionType(TransactionType.WITHDRAW);
         transaction.setAmount(withdrawRequest.amount());
         transaction.setCurrency(account.getCurrency());
@@ -90,34 +94,34 @@ public class TransactionService {
         transactionRepository.save(transaction);
 
         return mapToResponse(transaction);
-
     }
 
-
     @Transactional
-    public TransactionResponse transfer(TransferRequest transferRequest) {
+    public TransactionResponse transfer(TransferRequest transferRequest) throws CurrencyMismatchException {
         Account fromAccount = accountService.getAnyAccountById(transferRequest.fromAccountId());
         Account toAccount = accountService.getAccountByNumber(transferRequest.toAccountId());
 
-
-        // Нельзя перевести самому себе на тот же счёт
         if (fromAccount.getId().equals(toAccount.getId())) {
-            throw new RuntimeException("Нельзя перевести на тот же счёт");
+            throw new InvalidAmountException("Cannot transfer to the same account");
         }
 
-        // Проверяем сумму
         if (transferRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new RuntimeException("Сумма должна быть больше 0");
+            throw new InvalidAmountException("Transfer amount must be greater than 0");
         }
 
-        // Проверяем баланс
         if (fromAccount.getBalance().compareTo(transferRequest.amount()) < 0) {
-            throw new RuntimeException("Недостаточно средств");
+            throw new InsufficientFundsException(
+                    fromAccount.getId(),
+                    transferRequest.amount(),
+                    fromAccount.getBalance()
+            );
         }
 
-        // Проверяем валюту (можно переводить только в той же валюте)
         if (!fromAccount.getCurrency().equals(toAccount.getCurrency())) {
-            throw new RuntimeException("Валюты счетов не совпадают");
+            throw new CurrencyMismatchException(
+                    "Currency mismatch: from account has " + fromAccount.getCurrency() +
+                            " but to account has " + toAccount.getCurrency()
+            );
         }
 
         fromAccount.setBalance(fromAccount.getBalance().subtract(transferRequest.amount()));
@@ -128,7 +132,6 @@ public class TransactionService {
 
         accountRepository.save(fromAccount);
         accountRepository.save(toAccount);
-
 
         Transaction transaction = new Transaction();
         transaction.setFromAccount(fromAccount);
@@ -141,23 +144,15 @@ public class TransactionService {
         transaction.setCreatedAt(LocalDateTime.now());
         transaction.setCompletedAt(LocalDateTime.now());
 
-
         transactionRepository.save(transaction);
 
         return mapToResponse(transaction);
-
     }
 
-    //TODO RESPONSE
-    public List<Transaction> getAccountTransactions(Long accountId){
-
+    public List<Transaction> getAccountTransactions(Long accountId) {
         Account account = accountService.getAccountEntityById(accountId);
-
-        // Находим все транзакции где этот счёт участвует
         return transactionRepository.findByFromAccountOrToAccount(account, account);
-
     }
-
 
     private TransactionResponse mapToResponse(Transaction transaction) {
         return new TransactionResponse(
@@ -172,5 +167,4 @@ public class TransactionService {
                 transaction.getCreatedAt()
         );
     }
-
 }

@@ -1,10 +1,11 @@
 package com.company.bank_system.service;
 
-
 import com.company.bank_system.dto.LoginRequest;
 import com.company.bank_system.dto.RegisterRequest;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.User.UserStatus;
+import com.company.bank_system.exception.Exceptions.UserAlreadyExistsException;
+import com.company.bank_system.exception.Exceptions.UserNotFoundException;
 import com.company.bank_system.repo.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -14,11 +15,9 @@ import java.time.LocalDateTime;
 @Service
 public class AuthService {
 
-
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JWTService jwtService;
-
 
     public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JWTService jwtService) {
         this.userRepository = userRepository;
@@ -28,12 +27,11 @@ public class AuthService {
 
     public String register(RegisterRequest request) {
         if (userRepository.findByEmail(request.email()).isPresent()) {
-            throw new RuntimeException("Email уже занят");
+            throw new UserAlreadyExistsException("User with email " + request.email() + " already exists");
         }
 
-        // Проверка на существующий телефон (если есть метод)
         if (userRepository.findByPhone(request.phone()).isPresent()) {
-            throw new RuntimeException("Телефон уже занят");
+            throw new UserAlreadyExistsException("User with phone " + request.phone() + " already exists");
         }
 
         User user = new User();
@@ -47,21 +45,16 @@ public class AuthService {
         userRepository.save(user);
 
         return jwtService.generateToken(user.getEmail());
-
     }
-
 
     public String login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new RuntimeException("Юзер не найден"));
+                .orElseThrow(() -> new UserNotFoundException("User with email " + request.email() + " not found"));
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new RuntimeException("Incorrect password");
+            throw new UserNotFoundException("Incorrect email or password");
         }
-
 
         return jwtService.generateToken(user.getEmail());
     }
-
-
 }
