@@ -4,7 +4,7 @@ import java.math.BigDecimal;
 
 public record TransferRequest(
         Long fromAccountId,   // Откуда
-        Long toAccountId,     // Куда
+        String toAccountId,     // Куда
         BigDecimal amount,    // Сумма
         String description
 ) {}

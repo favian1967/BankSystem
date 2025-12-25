@@ -99,6 +99,17 @@ public class AccountService {
         return account;
     }
 
+    public Account getAnyAccountById(Long accountId) {
+        return accountRepository.findById(accountId)
+                .orElseThrow( () -> new RuntimeException(("Not found account")) );
+    }
+
+    public Account getAccountByNumber(String accountNumber) {
+        return accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow( () -> new RuntimeException(("Not found account")) );
+    }
+
+
     private AccountResponse mapToResponse(Account account) {
         return new AccountResponse(
                 account.getId(),

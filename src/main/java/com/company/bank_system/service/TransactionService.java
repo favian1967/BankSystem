@@ -1,9 +1,7 @@
 package com.company.bank_system.service;
 
 
-import com.company.bank_system.dto.DepositRequest;
-import com.company.bank_system.dto.TransferRequest;
-import com.company.bank_system.dto.WithdrawRequest;
+import com.company.bank_system.dto.*;
 import com.company.bank_system.entity.Account;
 import com.company.bank_system.entity.Transaction;
 import com.company.bank_system.entity.enums.Currency;
@@ -32,7 +30,7 @@ public class TransactionService {
     }
 
     @Transactional
-    public Transaction deposit(DepositRequest depositRequest) {
+    public TransactionResponse deposit(DepositRequest depositRequest) {
 
         Account account = accountService.getAccountEntityById(depositRequest.accountId());
 
@@ -56,11 +54,14 @@ public class TransactionService {
         transaction.setCreatedAt(LocalDateTime.now());
         transaction.setCompletedAt(LocalDateTime.now());
 
-        return transactionRepository.save(transaction);
+        transactionRepository.save(transaction);
+
+        return mapToResponse(transaction);
+
     }
 
     @Transactional
-    public Transaction withdraw(WithdrawRequest withdrawRequest) {
+    public TransactionResponse withdraw(WithdrawRequest withdrawRequest) {
         Account account = accountService.getAccountEntityById(withdrawRequest.accountId());
         if (withdrawRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException(">0");
@@ -78,7 +79,7 @@ public class TransactionService {
         Transaction transaction = new Transaction();
         transaction.setToAccount(null);          // Куда пришли деньги
         transaction.setFromAccount(account);           // Откуда пришли (нет источника)
-        transaction.setTransactionType(TransactionType.DEPOSIT);
+        transaction.setTransactionType(TransactionType.WITHDRAW);
         transaction.setAmount(withdrawRequest.amount());
         transaction.setCurrency(account.getCurrency());
         transaction.setDescription(withdrawRequest.description());
@@ -86,14 +87,17 @@ public class TransactionService {
         transaction.setCreatedAt(LocalDateTime.now());
         transaction.setCompletedAt(LocalDateTime.now());
 
-        return transactionRepository.save(transaction);
+        transactionRepository.save(transaction);
+
+        return mapToResponse(transaction);
+
     }
 
 
     @Transactional
-    public Transaction transfer(TransferRequest transferRequest) {
-        Account fromAccount = accountService.getAccountEntityById(transferRequest.fromAccountId());
-        Account toAccount = accountService.getAccountEntityById(transferRequest.toAccountId());
+    public TransactionResponse transfer(TransferRequest transferRequest) {
+        Account fromAccount = accountService.getAnyAccountById(transferRequest.fromAccountId());
+        Account toAccount = accountService.getAccountByNumber(transferRequest.toAccountId());
 
 
         // Нельзя перевести самому себе на тот же счёт
@@ -138,10 +142,13 @@ public class TransactionService {
         transaction.setCompletedAt(LocalDateTime.now());
 
 
-        return  transactionRepository.save(transaction);
+        transactionRepository.save(transaction);
+
+        return mapToResponse(transaction);
+
     }
 
-
+    //TODO RESPONSE
     public List<Transaction> getAccountTransactions(Long accountId){
 
         Account account = accountService.getAccountEntityById(accountId);
@@ -149,6 +156,21 @@ public class TransactionService {
         // Находим все транзакции где этот счёт участвует
         return transactionRepository.findByFromAccountOrToAccount(account, account);
 
+    }
+
+
+    private TransactionResponse mapToResponse(Transaction transaction) {
+        return new TransactionResponse(
+                transaction.getId(),
+                transaction.getFromAccount() != null ? transaction.getFromAccount().getId() : null,
+                transaction.getToAccount() != null ? transaction.getToAccount().getId() : null,
+                transaction.getTransactionType(),
+                transaction.getAmount(),
+                transaction.getCurrency(),
+                transaction.getDescription(),
+                transaction.getStatus(),
+                transaction.getCreatedAt()
+        );
     }
 
 }
