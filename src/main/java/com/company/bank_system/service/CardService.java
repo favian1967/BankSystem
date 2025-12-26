@@ -8,10 +8,12 @@ import com.company.bank_system.entity.Account;
 import com.company.bank_system.entity.Card;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.Cards.CardStatus;
+import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.exception.Exceptions.AccessDeniedException;
 import com.company.bank_system.exception.Exceptions.CardAlreadyBlockedException;
 import com.company.bank_system.exception.Exceptions.CardNotFoundException;
 import com.company.bank_system.repo.CardRepository;
+import com.company.bank_system.repo.UserRepository;
 import jakarta.persistence.Id;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -84,38 +86,62 @@ public class CardService {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException(cardId));
 
-        if (!card.getUser().getId().equals(user.getId())) {
-            throw new AccessDeniedException();
-        }
         return card;
     }
 
     public CardResponse blockCard(Long cardId) {
-        Card card = getCardEntityById(cardId); // ✅ Уже проверяет владельца
+        User user = currentUserService.getCurrentUser();
+        System.out.println("=== Block Card Debug ===");
+        System.out.println("Current user ID: " + user.getId());
+        System.out.println("Current user role: " + user.getRole());
+        System.out.println("Current user email: " + user.getEmail());
+
+        Card card = getCardEntityById(cardId);
+        System.out.println("Card ID: " + card.getId());
+        System.out.println("Card user ID: " + card.getUser().getId());
+        System.out.println("Card user email: " + card.getUser().getEmail());
+        System.out.println("=== End Debug ===");
 
         if (card.getStatus() == CardStatus.BLOCKED) {
             throw new CardAlreadyBlockedException(cardId);
         }
 
-        card.setStatus(CardStatus.BLOCKED);
-        card.setUpdatedAt(LocalDateTime.now());
 
-        Card saved = cardRepository.save(card);
-        return mapToResponse(saved);
+        boolean isOwner = card.getUser().getId().equals(user.getId());
+        boolean isAdmin = user.getRole() == UserRole.ADMIN;
+
+        if (isAdmin || isOwner){
+            card.setStatus(CardStatus.BLOCKED);
+            card.setUpdatedAt(LocalDateTime.now());
+
+            return mapToResponse(cardRepository.save(card));
+        } else {
+            throw new AccessDeniedException("You are not allowed to access this card");
+        }
+
+
     }
 
     public CardResponse unblockCard(Long cardId) {
+        User user = currentUserService.getCurrentUser();
         Card card = getCardEntityById(cardId);
 
         if (card.getStatus() == CardStatus.ACTIVE) {
             throw new IllegalStateException("Карта уже активна");
         }
 
-        card.setStatus(CardStatus.ACTIVE);
-        card.setUpdatedAt(LocalDateTime.now());
+        boolean isOwner = card.getUser().getId().equals(user.getId());
+        boolean isAdmin = user.getRole() == UserRole.ADMIN;
 
-        Card saved = cardRepository.save(card);
-        return mapToResponse(saved);
+        if (isAdmin || isOwner){
+            card.setStatus(CardStatus.ACTIVE);
+            card.setUpdatedAt(LocalDateTime.now());
+
+            Card saved = cardRepository.save(card);
+            return mapToResponse(saved);
+        } else {
+            throw new AccessDeniedException("You are not allowed to access this card");
+        }
     }
 
 

@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -52,15 +53,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter { //OncePerReq
         // 4. Проверяем токен
         if (jwtService.isValid(token)) {
             String email = jwtService.extractEmail(token);
+            User user = userRepository.findByEmail(email)
+                    .orElse(null);
 
-            // 5. Говорим Spring Security: "Этот юзер авторизован" ya xz che za trash
+            List<GrantedAuthority> authorities =
+                    List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
+
+            // 5. Говорим Spring Security: "Этот юзер авторизован"
             UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(email, null, null);
+                    new UsernamePasswordAuthenticationToken(
+                            email,
+                            null,
+                            authorities
+                    );
 
             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken); //SecurityContextHolder глобальное хранилище
+            SecurityContextHolder.getContext().setAuthentication(authToken); //SecurityContextHolder global
         }
-        //end trash
+
 
 
         filterChain.doFilter(request, response);

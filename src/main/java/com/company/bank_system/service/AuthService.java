@@ -3,6 +3,7 @@ package com.company.bank_system.service;
 import com.company.bank_system.dto.LoginRequest;
 import com.company.bank_system.dto.RegisterRequest;
 import com.company.bank_system.entity.User;
+import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.entity.enums.User.UserStatus;
 import com.company.bank_system.exception.Exceptions.UserAlreadyExistsException;
 import com.company.bank_system.exception.Exceptions.UserNotFoundException;
@@ -41,6 +42,7 @@ public class AuthService {
         user.setPhone(request.phone());
         user.setStatus(UserStatus.ACTIVE);
         user.setCreatedAt(LocalDateTime.now());
+        user.setRole(UserRole.USER);
 
         userRepository.save(user);
 

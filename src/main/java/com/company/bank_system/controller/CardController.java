@@ -4,6 +4,7 @@ package com.company.bank_system.controller;
 import com.company.bank_system.dto.CardResponse;
 import com.company.bank_system.dto.CreateCardRequest;
 import com.company.bank_system.service.CardService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -38,7 +39,7 @@ public class CardController {
     ) {
         return cardService.getCardById(id);
     }
-
+//    @PreAuthorize("@cardPermission.canBlock(#id, authentication)")
     @PostMapping("/block/{id}")
     public CardResponse blockCard(
             @PathVariable Long id
