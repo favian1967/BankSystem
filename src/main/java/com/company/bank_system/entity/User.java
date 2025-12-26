@@ -1,6 +1,7 @@
 package com.company.bank_system.entity;
 
 
+import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.entity.enums.User.UserStatus;
 import jakarta.persistence.*;
 
@@ -48,5 +49,7 @@ public class User {
     @Column(updatable = false)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private UserRole role;
 
 }

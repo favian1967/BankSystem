@@ -1,17 +1,21 @@
 package com.company.bank_system.security;
 
+import com.company.bank_system.entity.User;
+import com.company.bank_system.repo.UserRepository;
 import com.company.bank_system.service.JWTService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 
 //catch all the requests and check jwt
@@ -21,9 +25,11 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter { //OncePerRequestFilter every requests
 
     private final JWTService jwtService;
+    private final UserRepository userRepository;
 
-    public JwtAuthenticationFilter(JWTService jwtService) {
+    public JwtAuthenticationFilter(JWTService jwtService, UserRepository userRepository) {
         this.jwtService = jwtService;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -56,7 +62,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter { //OncePerReq
         }
         //end trash
 
-        // 6. Передаём запрос дальше
+
         filterChain.doFilter(request, response);
     }
+
 }
