@@ -15,6 +15,7 @@ import com.company.bank_system.exception.Exceptions.CardNotFoundException;
 import com.company.bank_system.repo.CardRepository;
 import com.company.bank_system.repo.UserRepository;
 import jakarta.persistence.Id;
+import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -40,12 +41,16 @@ public class CardService {
         this.passwordEncoder = passwordEncoder;
     }
 
-
+    @Transactional
     public CardResponse createCard(CreateCardRequest createCardRequest) {
         Account account = accountService.getAccountEntityById(createCardRequest.accountId());
         User user  = currentUserService.getCurrentUser();
 
         Card card = new Card();
+
+        if (!account.getUser().getId().equals(user.getId()) && user.getRole() != UserRole.ADMIN) {
+            throw new AccessDeniedException("You cannot create card for this account");
+        }
 
         card.setAccount(account);
         card.setUser(user);
@@ -74,9 +79,22 @@ public class CardService {
                 .toList();
     }
 
+    public List<CardResponse> adminGetCardsByUser(Long userId) {
+        User currentUser = currentUserService.getCurrentUser();
+        List<Card> cards = cardRepository.findByUserId(userId);
+
+        if(currentUser.getRole() != UserRole.ADMIN) {
+            throw new AccessDeniedException("You cannot get cards for this account");
+        }
+
+        return cards.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
 
     public CardResponse getCardById(Long cardId) {
-        Card card = cardRepository.findById(cardId).orElse(null);
+        Card card = getCardEntityById(cardId);
         return mapToResponse(card);
     }
 
@@ -86,62 +104,45 @@ public class CardService {
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException(cardId));
 
+        boolean isOwner = card.getUser().getId().equals(user.getId());
+        boolean isAdmin = UserRole.ADMIN.equals(user.getRole());
+
+
+        if (!isAdmin && !isOwner)
+            throw new AccessDeniedException("You are not allowed to access this card");
+
+
         return card;
+
     }
-
+    @Transactional
     public CardResponse blockCard(Long cardId) {
-        User user = currentUserService.getCurrentUser();
-        System.out.println("=== Block Card Debug ===");
-        System.out.println("Current user ID: " + user.getId());
-        System.out.println("Current user role: " + user.getRole());
-        System.out.println("Current user email: " + user.getEmail());
-
         Card card = getCardEntityById(cardId);
-        System.out.println("Card ID: " + card.getId());
-        System.out.println("Card user ID: " + card.getUser().getId());
-        System.out.println("Card user email: " + card.getUser().getEmail());
-        System.out.println("=== End Debug ===");
 
         if (card.getStatus() == CardStatus.BLOCKED) {
             throw new CardAlreadyBlockedException(cardId);
         }
 
+        card.setStatus(CardStatus.BLOCKED);
+        card.setUpdatedAt(LocalDateTime.now());
 
-        boolean isOwner = card.getUser().getId().equals(user.getId());
-        boolean isAdmin = user.getRole() == UserRole.ADMIN;
 
-        if (isAdmin || isOwner){
-            card.setStatus(CardStatus.BLOCKED);
-            card.setUpdatedAt(LocalDateTime.now());
-
-            return mapToResponse(cardRepository.save(card));
-        } else {
-            throw new AccessDeniedException("You are not allowed to access this card");
+        return mapToResponse(cardRepository.save(card));
         }
 
-
-    }
-
+    @Transactional
     public CardResponse unblockCard(Long cardId) {
-        User user = currentUserService.getCurrentUser();
         Card card = getCardEntityById(cardId);
 
         if (card.getStatus() == CardStatus.ACTIVE) {
             throw new IllegalStateException("Карта уже активна");
         }
 
-        boolean isOwner = card.getUser().getId().equals(user.getId());
-        boolean isAdmin = user.getRole() == UserRole.ADMIN;
+        card.setStatus(CardStatus.ACTIVE);
+        card.setUpdatedAt(LocalDateTime.now());
 
-        if (isAdmin || isOwner){
-            card.setStatus(CardStatus.ACTIVE);
-            card.setUpdatedAt(LocalDateTime.now());
-
-            Card saved = cardRepository.save(card);
-            return mapToResponse(saved);
-        } else {
-            throw new AccessDeniedException("You are not allowed to access this card");
-        }
+        Card saved = cardRepository.save(card);
+        return mapToResponse(saved);
     }
 
 
@@ -151,9 +152,12 @@ public class CardService {
         Account account = accountService.getAccountEntityById(card.getAccount().getId());
         User user =  currentUserService.getCurrentUser();
 
-        if(!card.getUser().getId().equals(user.getId())) {
-            throw new AccessDeniedException();
-        }
+
+        boolean isOwner = card.getUser().getId().equals(user.getId());
+        boolean isAdmin = UserRole.ADMIN.equals(user.getRole());
+
+        if (!isOwner && !isAdmin)
+            throw new AccessDeniedException("You are not allowed to access this card");
 
         return account.getBalance();
     }
