@@ -3,8 +3,8 @@ package com.company.bank_system.dto;
 import java.math.BigDecimal;
 
 public record TransferRequest(
-        Long fromAccountId,   // Откуда
-        String toAccountId,     // Куда
-        BigDecimal amount,    // Сумма
+        Long fromAccountId,
+        String toAccountId,
+        BigDecimal amount,
         String description
 ) {}

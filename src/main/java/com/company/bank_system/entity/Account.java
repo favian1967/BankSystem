@@ -24,17 +24,15 @@ public class Account {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Много счетов → один юзер
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    // Один счёт → много карт
     @OneToMany(mappedBy = "account", cascade = CascadeType.ALL)
     private List<Card> cards;
 
     @Column(unique = true, nullable = false)
-    private String accountNumber; // Генерируем автоматически
+    private String accountNumber;
 
     @Enumerated(EnumType.STRING)
     private AccountType accountType; // CHECKING, SAVINGS, DEPOSIT
@@ -42,7 +40,7 @@ public class Account {
     private Currency currency;    // RUB, USD, EUR
 
     @Column(nullable = false)
-    private BigDecimal balance; // Используем BigDecimal для денег!
+    private BigDecimal balance;
 
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)

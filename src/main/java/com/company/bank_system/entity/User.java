@@ -45,7 +45,7 @@ public class User {
     private String passportNumber;
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    private UserStatus status;
+    private UserStatus status; // ACTIVE, BLOCKED
     @Column(updatable = false)
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

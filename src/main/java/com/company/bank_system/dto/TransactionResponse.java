@@ -8,13 +8,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record TransactionResponse(
-        Long id,                          // ✅ ID транзакции
-        Long fromAccountId,               // ✅ Nullable
-        Long toAccountId,                 // ✅ Nullable
+        Long id,
+        Long fromAccountId,
+        Long toAccountId,
         TransactionType transactionType,
-        BigDecimal amount,                // ✅ Добавил
+        BigDecimal amount,
         Currency currency,
-        String description,               // ✅ Добавил
+        String description,
         TransactionStatus status,
-        LocalDateTime createdAt           // ✅ Добавил
+        LocalDateTime createdAt
 ) {}

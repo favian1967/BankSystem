@@ -17,6 +17,6 @@ public record CardResponse (
         CardStatus cardStatus,
         Long accountId,
         LocalDateTime createdAt
-        //without cvv, its security
+        //without cvv, its security)
 ){
 }

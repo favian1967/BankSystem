@@ -23,11 +23,11 @@ public class Transaction {
 
     @ManyToOne
     @JoinColumn(name = "from_account_id")
-    private Account fromAccount; // Откуда (nullable для пополнения)
+    private Account fromAccount; //  (nullable for deposit)
 
     @ManyToOne
     @JoinColumn(name = "to_account_id")
-    private Account toAccount; // Куда (nullable для снятия)
+    private Account toAccount; // (nullable withdraw)
     @Enumerated(EnumType.STRING)
     private TransactionType transactionType; // TRANSFER, DEPOSIT, WITHDRAWAL, PAYMENT
 

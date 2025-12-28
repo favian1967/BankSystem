@@ -40,17 +40,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter { //OncePerReq
 
         // 1. get jwt from http
         String authHeader = request.getHeader("Authorization");
-
-        // 2. Если заголовка нет или он не начинается с "Bearer " → пропускаем
+        // 2
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 3. Вырезаем токен (убираем "Bearer ")
+        // 3.del barrier
         String token = authHeader.substring(7);
 
-        // 4. Проверяем токен
+        // 4. Check token
         if (jwtService.isValid(token)) {
             String email = jwtService.extractEmail(token);
             User user = userRepository.findByEmail(email)
@@ -59,7 +58,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter { //OncePerReq
             List<GrantedAuthority> authorities =
                     List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
 
-            // 5. Говорим Spring Security: "Этот юзер авторизован"
+            // 5. this user is authorized
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(
                             email,

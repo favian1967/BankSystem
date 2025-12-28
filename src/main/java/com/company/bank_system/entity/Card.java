@@ -22,26 +22,25 @@ public class Card {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Много карт → один счёт
+
     @ManyToOne
     @JoinColumn(name = "account_id", nullable = false)
     private Account account;
 
-    // Связь с юзером (для быстрого доступа)
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     @Column(unique = true, nullable = false)
-    private String cardNumber; // 16 цифр
+    private String cardNumber; // 16 digits
 
-    private String cardHolderName; // IVAN PETROV
-
-    @Column(nullable = false)
-    private String cvvHash; // Хешированный CVV (безопасность!)
+    private String cardHolderName; // john carter
 
     @Column(nullable = false)
-    private LocalDate expiryDate; // Срок действия
+    private String cvvHash;
+
+    @Column(nullable = false)
+    private LocalDate expiryDate;
     @Enumerated(EnumType.STRING)
     private CardType cardType; // DEBIT, CREDIT
     @Enumerated(EnumType.STRING)
