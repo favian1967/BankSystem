@@ -1,6 +1,5 @@
 package com.company.bank_system.controller;
 
-
 import com.company.bank_system.dto.LoginRequest;
 import com.company.bank_system.dto.RegisterRequest;
 import com.company.bank_system.service.AuthService;
@@ -21,11 +20,12 @@ public class AuthController {
 
     @PostMapping("/register")
     public String register(@RequestBody RegisterRequest request) {
-        return  authService.register(request);
+        return authService.register(request);
     }
 
     @PostMapping("/login")
     public String login(@RequestBody LoginRequest request) {
         return authService.login(request);
     }
+
 }

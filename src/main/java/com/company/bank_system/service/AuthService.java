@@ -11,8 +11,8 @@ import com.company.bank_system.repo.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.time.LocalDateTime;
+
 @Service
 @Slf4j
 public class AuthService {
@@ -103,7 +103,7 @@ public class AuthService {
         return jwtService.generateToken(user.getEmail());
     }
 
-    /* ================= HELPERS ================= */
+
 
     private String maskEmail(String email) {
         int at = email.indexOf("@");

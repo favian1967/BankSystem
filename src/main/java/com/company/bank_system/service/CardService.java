@@ -1,36 +1,32 @@
 package com.company.bank_system.service;
 
-
-import com.company.bank_system.dto.AccountResponse;
 import com.company.bank_system.dto.CardResponse;
 import com.company.bank_system.dto.CreateCardRequest;
 import com.company.bank_system.entity.Account;
 import com.company.bank_system.entity.Card;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.Cards.CardStatus;
+import com.company.bank_system.entity.enums.Cards.CardType;
 import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.exception.Exceptions.AccessDeniedException;
 import com.company.bank_system.exception.Exceptions.CardAlreadyBlockedException;
 import com.company.bank_system.exception.Exceptions.CardNotFoundException;
 import com.company.bank_system.repo.CardRepository;
-import com.company.bank_system.repo.UserRepository;
-import jakarta.persistence.Id;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Slf4j
 public class CardService {
-
 
     private final CardRepository cardRepository;
     private final AccountService accountService;
@@ -250,6 +246,221 @@ public class CardService {
         return passwordEncoder.encode(
                 String.valueOf(ThreadLocalRandom.current().nextInt(100, 999))
         );
+    }
+
+    public List<CardResponse> getCardsByAccount(Long accountId) {
+        User user = currentUserService.getCurrentUser();
+        Account account = accountService.getAccountEntityById(accountId);
+
+        log.debug("GET_CARDS_BY_ACCOUNT userId={} accountId={}", user.getId(), accountId);
+
+        List<Card> cards = cardRepository.findByAccount(account);
+
+        log.info("GET_CARDS_BY_ACCOUNT_SUCCESS userId={} accountId={} count={}",
+                user.getId(), accountId, cards.size()
+        );
+
+        return cards.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<CardResponse> getCardsByStatus(CardStatus status) {
+        User user = currentUserService.getCurrentUser();
+
+        log.debug("GET_CARDS_BY_STATUS userId={} status={}", user.getId(), status);
+
+        List<Card> cards = cardRepository.findByUserAndStatus(user, status);
+
+        log.info("GET_CARDS_BY_STATUS_SUCCESS userId={} status={} count={}",
+                user.getId(), status, cards.size()
+        );
+
+        return cards.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<CardResponse> getCardsByType(CardType type) {
+        User user = currentUserService.getCurrentUser();
+
+        log.debug("GET_CARDS_BY_TYPE userId={} type={}", user.getId(), type);
+
+        List<Card> cards = cardRepository.findByUserAndCardType(user, type);
+
+        log.info("GET_CARDS_BY_TYPE_SUCCESS userId={} type={} count={}",
+                user.getId(), type, cards.size()
+        );
+
+        return cards.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<CardResponse> getActiveCards() {
+        User user = currentUserService.getCurrentUser();
+
+        log.debug("GET_ACTIVE_CARDS userId={}", user.getId());
+
+        List<Card> cards = cardRepository.findByUserAndStatus(user, CardStatus.ACTIVE);
+
+        log.info("GET_ACTIVE_CARDS_SUCCESS userId={} count={}",
+                user.getId(), cards.size()
+        );
+
+        return cards.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<CardResponse> getBlockedCards() {
+        User user = currentUserService.getCurrentUser();
+
+        log.debug("GET_BLOCKED_CARDS userId={}", user.getId());
+
+        List<Card> cards = cardRepository.findByUserAndStatus(user, CardStatus.BLOCKED);
+
+        log.info("GET_BLOCKED_CARDS_SUCCESS userId={} count={}",
+                user.getId(), cards.size()
+        );
+
+        return cards.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<CardResponse> getExpiredCards() {
+        User user = currentUserService.getCurrentUser();
+
+        log.debug("GET_EXPIRED_CARDS userId={}", user.getId());
+
+        List<Card> cards = cardRepository.findByUserAndExpiryDateBefore(user, LocalDate.now());
+
+        log.info("GET_EXPIRED_CARDS_SUCCESS userId={} count={}",
+                user.getId(), cards.size()
+        );
+
+        return cards.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public long getCardsCount() {
+        User user = currentUserService.getCurrentUser();
+
+        log.debug("GET_CARDS_COUNT userId={}", user.getId());
+
+        long count = cardRepository.countByUser(user);
+
+        log.info("GET_CARDS_COUNT_SUCCESS userId={} count={}",
+                user.getId(), count
+        );
+
+        return count;
+    }
+
+    public long getCardsCountByStatus(CardStatus status) {
+        User user = currentUserService.getCurrentUser();
+
+        log.debug("GET_CARDS_COUNT_BY_STATUS userId={} status={}",
+                user.getId(), status
+        );
+
+        long count = cardRepository.countByUserAndStatus(user, status);
+
+        log.info("GET_CARDS_COUNT_BY_STATUS_SUCCESS userId={} status={} count={}",
+                user.getId(), status, count
+        );
+
+        return count;
+    }
+
+    @Transactional
+    public void deleteCard(Long cardId) {
+        User user = currentUserService.getCurrentUser();
+
+        log.info("DELETE_CARD_START userId={} cardId={}", user.getId(), cardId);
+
+        Card card = getCardEntityById(cardId);
+
+        cardRepository.delete(card);
+
+        log.info("DELETE_CARD_SUCCESS userId={} cardId={}", user.getId(), cardId);
+    }
+
+    public Map<String, Object> checkCardExpiry(Long cardId) {
+        User user = currentUserService.getCurrentUser();
+
+        log.debug("CHECK_CARD_EXPIRY userId={} cardId={}", user.getId(), cardId);
+
+        Card card = getCardEntityById(cardId);
+
+        boolean isExpired = card.getExpiryDate().isBefore(LocalDate.now());
+        long daysUntilExpiry = java.time.temporal.ChronoUnit.DAYS.between(
+                LocalDate.now(),
+                card.getExpiryDate()
+        );
+
+        log.info("CHECK_CARD_EXPIRY_SUCCESS cardId={} isExpired={} daysUntilExpiry={}",
+                cardId, isExpired, daysUntilExpiry
+        );
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("cardId", cardId);
+        result.put("isExpired", isExpired);
+        result.put("expiryDate", card.getExpiryDate().toString());
+        result.put("daysUntilExpiry", daysUntilExpiry);
+
+        return result;
+    }
+
+    public List<CardResponse> adminGetAllCards() {
+        User user = currentUserService.getCurrentUser();
+
+        log.info("ADMIN_GET_ALL_CARDS adminId={}", user.getId());
+
+        if (user.getRole() != UserRole.ADMIN) {
+            log.error("ADMIN_GET_ALL_CARDS_ACCESS_DENIED userId={}", user.getId());
+            throw new AccessDeniedException("Admin access required");
+        }
+
+        List<Card> cards = cardRepository.findAll();
+
+        log.info("ADMIN_GET_ALL_CARDS_SUCCESS adminId={} count={}",
+                user.getId(), cards.size()
+        );
+
+        return cards.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public Map<String, Object> adminGetCardStats() {
+        User user = currentUserService.getCurrentUser();
+
+        log.info("ADMIN_GET_CARD_STATS adminId={}", user.getId());
+
+        if (user.getRole() != UserRole.ADMIN) {
+            log.error("ADMIN_GET_CARD_STATS_ACCESS_DENIED userId={}", user.getId());
+            throw new AccessDeniedException("Admin access required");
+        }
+
+        long totalCards = cardRepository.count();
+        long activeCards = cardRepository.countByStatus(CardStatus.ACTIVE);
+        long blockedCards = cardRepository.countByStatus(CardStatus.BLOCKED);
+        long expiredCards = cardRepository.countByExpiryDateBefore(LocalDate.now());
+
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("totalCards", totalCards);
+        stats.put("activeCards", activeCards);
+        stats.put("blockedCards", blockedCards);
+        stats.put("expiredCards", expiredCards);
+
+        log.info("ADMIN_GET_CARD_STATS_SUCCESS adminId={} total={} active={} blocked={} expired={}",
+                user.getId(), totalCards, activeCards, blockedCards, expiredCards
+        );
+
+        return stats;
     }
 
     private String maskCardNumber(String cardNumber) {

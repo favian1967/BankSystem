@@ -5,13 +5,16 @@ import com.company.bank_system.dto.CreateAccountRequest;
 import com.company.bank_system.entity.Account;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.Account.AccountStatus;
+import com.company.bank_system.entity.enums.Account.AccountType;
+import com.company.bank_system.entity.enums.Currency;
 import com.company.bank_system.exception.Exceptions.AccessDeniedException;
 import com.company.bank_system.exception.Exceptions.AccountNotFoundException;
+import com.company.bank_system.exception.Exceptions.InvalidOperationException;
 import com.company.bank_system.repo.AccountRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -131,7 +134,7 @@ public class AccountService {
 
         return account;
     }
-
+    //INTERNAL USE ONLY
     public Account getAnyAccountById(Long accountId) {
         log.debug("GET_ANY_ACCOUNT accountId={}", accountId);
 
@@ -144,7 +147,7 @@ public class AccountService {
                     );
                 });
     }
-
+    // INTERNAL USE ONLY (payments, transfers)
     public Account getAccountByNumber(String accountNumber) {
         log.debug("GET_ACCOUNT_BY_NUMBER accountNumber={}", maskAccountNumber(accountNumber));
 
@@ -158,6 +161,198 @@ public class AccountService {
                             accountNumber
                     );
                 });
+    }
+
+    public AccountResponse getAccountByAccountNumber(String accountNumber) {
+        User currentUser = currentUserService.getCurrentUser();
+
+        log.debug("GET_ACCOUNT_BY_NUMBER userId={} accountNumber={}",
+                currentUser.getId(), maskAccountNumber(accountNumber)
+        );
+
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> {
+                    log.warn("ACCOUNT_NOT_FOUND_BY_NUMBER accountNumber={}",
+                            maskAccountNumber(accountNumber)
+                    );
+                    return new AccountNotFoundException(
+                            AccountNotFoundException.Type.NUMBER,
+                            accountNumber
+                    );
+                });
+
+        if (!account.getUser().getId().equals(currentUser.getId())) {
+            log.error("ACCESS_DENIED userId={} accountNumber={}",
+                    currentUser.getId(), maskAccountNumber(accountNumber)
+            );
+            throw new AccessDeniedException("Access denied to account");
+        }
+
+        log.info("GET_ACCOUNT_BY_NUMBER_SUCCESS userId={} accountId={}",
+                currentUser.getId(), account.getId()
+        );
+
+        return mapToResponse(account);
+    }
+
+    public List<AccountResponse> getAccountsByType(AccountType type) {
+        User currentUser = currentUserService.getCurrentUser();
+
+        log.debug("GET_ACCOUNTS_BY_TYPE userId={} type={}", currentUser.getId(), type);
+
+        List<Account> accounts = accountRepository.findByUserAndAccountType(currentUser, type);
+
+        log.info("GET_ACCOUNTS_BY_TYPE_SUCCESS userId={} type={} count={}",
+                currentUser.getId(), type, accounts.size()
+        );
+
+        return accounts.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<AccountResponse> getAccountsByCurrency(Currency currency) {
+        User currentUser = currentUserService.getCurrentUser();
+
+        log.debug("GET_ACCOUNTS_BY_CURRENCY userId={} currency={}", currentUser.getId(), currency);
+
+        List<Account> accounts = accountRepository.findByUserAndCurrency(currentUser, currency);
+
+        log.info("GET_ACCOUNTS_BY_CURRENCY_SUCCESS userId={} currency={} count={}",
+                currentUser.getId(), currency, accounts.size()
+        );
+
+        return accounts.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<AccountResponse> getAccountsByStatus(AccountStatus status) {
+        User currentUser = currentUserService.getCurrentUser();
+
+        log.debug("GET_ACCOUNTS_BY_STATUS userId={} status={}", currentUser.getId(), status);
+
+        List<Account> accounts = accountRepository.findByUserAndStatus(currentUser, status);
+
+        log.info("GET_ACCOUNTS_BY_STATUS_SUCCESS userId={} status={} count={}",
+                currentUser.getId(), status, accounts.size()
+        );
+
+        return accounts.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public BigDecimal getAccountBalance(Long accountId) {
+        User currentUser = currentUserService.getCurrentUser();
+
+        log.debug("GET_ACCOUNT_BALANCE userId={} accountId={}", currentUser.getId(), accountId);
+
+        Account account = getAccountEntityById(accountId);
+
+        log.info("GET_ACCOUNT_BALANCE_SUCCESS userId={} accountId={} balance={}",
+                currentUser.getId(), accountId, account.getBalance()
+        );
+
+        return account.getBalance();
+    }
+
+    public BigDecimal getTotalBalanceByCurrency(Currency currency) {
+        User currentUser = currentUserService.getCurrentUser();
+
+        log.debug("GET_TOTAL_BALANCE userId={} currency={}", currentUser.getId(), currency);
+
+        List<Account> accounts = accountRepository.findByUserAndCurrency(currentUser, currency);
+
+        BigDecimal total = accounts.stream()
+                .filter(acc -> acc.getStatus() == AccountStatus.ACTIVE)
+                .map(Account::getBalance)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        log.info("GET_TOTAL_BALANCE_SUCCESS userId={} currency={} total={}",
+                currentUser.getId(), currency, total
+        );
+
+        return total;
+    }
+
+    @Transactional
+    public AccountResponse updateAccountStatus(Long accountId, AccountStatus newStatus) {
+        User currentUser = currentUserService.getCurrentUser();
+
+        log.info("UPDATE_ACCOUNT_STATUS_START userId={} accountId={} newStatus={}",
+                currentUser.getId(), accountId, newStatus
+        );
+
+        Account account = getAccountEntityById(accountId);
+
+        if (account.getStatus() == AccountStatus.CLOSED) {
+            log.error("CANNOT_UPDATE_CLOSED_ACCOUNT accountId={}", accountId);
+            throw new InvalidOperationException("Cannot update status of closed account");
+        }
+
+        account.setStatus(newStatus);
+        account.setUpdatedAt(LocalDateTime.now());
+
+        Account saved = accountRepository.save(account);
+
+        log.info("UPDATE_ACCOUNT_STATUS_SUCCESS userId={} accountId={} status={}",
+                currentUser.getId(), accountId, newStatus
+        );
+
+        return mapToResponse(saved);
+    }
+
+    @Transactional
+    public void closeAccount(Long accountId) {
+        User currentUser = currentUserService.getCurrentUser();
+
+        log.info("CLOSE_ACCOUNT_START userId={} accountId={}", currentUser.getId(), accountId);
+
+        Account account = getAccountEntityById(accountId);
+
+        if (account.getBalance().compareTo(BigDecimal.ZERO) != 0) {
+            log.error("CANNOT_CLOSE_ACCOUNT_WITH_BALANCE accountId={} balance={}",
+                    accountId, account.getBalance()
+            );
+            throw new InvalidOperationException("Cannot close account with non-zero balance");
+        }
+
+        if (account.getStatus() == AccountStatus.CLOSED) {
+            log.warn("ACCOUNT_ALREADY_CLOSED accountId={}", accountId);
+            throw new InvalidOperationException("Account is already closed");
+        }
+
+        account.setStatus(AccountStatus.CLOSED);
+        account.setUpdatedAt(LocalDateTime.now());
+
+        accountRepository.save(account);
+
+        log.info("CLOSE_ACCOUNT_SUCCESS userId={} accountId={}", currentUser.getId(), accountId);
+    }
+
+    public long getAccountsCount() {
+        User currentUser = currentUserService.getCurrentUser();
+
+        log.debug("GET_ACCOUNTS_COUNT userId={}", currentUser.getId());
+
+        long count = accountRepository.countByUser(currentUser);
+
+        log.info("GET_ACCOUNTS_COUNT_SUCCESS userId={} count={}", currentUser.getId(), count);
+
+        return count;
+    }
+
+    public boolean accountExists(String accountNumber) {
+        log.debug("CHECK_ACCOUNT_EXISTS accountNumber={}", maskAccountNumber(accountNumber));
+
+        boolean exists = accountRepository.existsByAccountNumber(accountNumber);
+
+        log.info("CHECK_ACCOUNT_EXISTS_RESULT accountNumber={} exists={}",
+                maskAccountNumber(accountNumber), exists
+        );
+
+        return exists;
     }
 
     private String generateAccountNumber() {
