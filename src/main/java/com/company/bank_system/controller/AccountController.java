@@ -4,6 +4,7 @@ import com.company.bank_system.dto.AccountResponse;
 import com.company.bank_system.dto.CreateAccountRequest;
 import com.company.bank_system.repo.AccountRepository;
 import com.company.bank_system.service.AccountService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -26,7 +27,7 @@ public class AccountController {
 
     @PostMapping("/add")
     public AccountResponse createAccount(
-            @RequestBody CreateAccountRequest createAccountRequest
+            @Valid @RequestBody CreateAccountRequest createAccountRequest
     ) {
         return accountService.createAccount(createAccountRequest);
     }
@@ -90,13 +91,15 @@ public class AccountController {
     @PatchMapping("/{id}/status")
     public AccountResponse updateAccountStatus(
             @PathVariable("id") Long accountId,
-            @RequestBody UpdateAccountStatusRequest request
+            @Valid @RequestBody UpdateAccountStatusRequest request
     ) {
         return accountService.updateAccountStatus(accountId, request.status());
     }
 
     @DeleteMapping("/{id}/close")
-    public Map<String, String> closeAccount(@PathVariable("id") Long accountId) {
+    public Map<String, String> closeAccount(
+            @PathVariable("id") Long accountId
+    ) {
         accountService.closeAccount(accountId);
         return Map.of("message", "Account closed successfully", "accountId", accountId.toString());
     }
@@ -107,12 +110,16 @@ public class AccountController {
     }
 
     @PatchMapping("/{id}/block")
-    public AccountResponse blockAccount(@PathVariable("id") Long accountId) {
+    public AccountResponse blockAccount(
+            @PathVariable("id") Long accountId
+    ) {
         return accountService.updateAccountStatus(accountId, AccountStatus.BLOCKED);
     }
 
     @PatchMapping("/{id}/unblock")
-    public AccountResponse unblockAccount(@PathVariable("id") Long accountId) {
+    public AccountResponse unblockAccount(
+            @PathVariable("id") Long accountId
+    ) {
         return accountService.updateAccountStatus(accountId, AccountStatus.ACTIVE);
     }
 

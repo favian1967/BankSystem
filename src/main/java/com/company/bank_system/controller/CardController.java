@@ -5,6 +5,7 @@ import com.company.bank_system.dto.CreateCardRequest;
 import com.company.bank_system.entity.enums.Cards.CardStatus;
 import com.company.bank_system.entity.enums.Cards.CardType;
 import com.company.bank_system.service.CardService;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,7 +26,7 @@ public class CardController {
 
     @PostMapping("/createCard")
     public CardResponse createCard(
-            @RequestBody CreateCardRequest request
+            @Valid @RequestBody CreateCardRequest request
     ) {
         return cardService.createCard(request);
     }

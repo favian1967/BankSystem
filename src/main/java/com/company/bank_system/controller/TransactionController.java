@@ -6,6 +6,7 @@ import com.company.bank_system.dto.TransferRequest;
 import com.company.bank_system.dto.WithdrawRequest;
 import com.company.bank_system.entity.Transaction;
 import com.company.bank_system.service.TransactionService;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,14 +25,14 @@ public class TransactionController {
 
     @PostMapping("/deposit")
     public TransactionResponse deposit(
-            @RequestBody DepositRequest depositRequest
+            @Valid @RequestBody DepositRequest depositRequest
     ) {
         TransactionResponse transaction = transactionService.deposit(depositRequest);
         return transaction;
     }
     @PostMapping("/withdraw")
     public TransactionResponse withdraw(
-            @RequestBody WithdrawRequest withdrawRequest
+            @Valid @RequestBody WithdrawRequest withdrawRequest
     ) {
         TransactionResponse transaction = transactionService.withdraw(withdrawRequest);
         return transaction;
@@ -39,7 +40,7 @@ public class TransactionController {
 
     @PostMapping("/transfer")
     public TransactionResponse transfer(
-            @RequestBody TransferRequest transferRequest
+            @Valid @RequestBody TransferRequest transferRequest
     ){
         TransactionResponse transaction = transactionService.transfer(transferRequest);
         return transaction;

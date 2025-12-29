@@ -4,6 +4,7 @@ package com.company.bank_system.exception;
 import com.company.bank_system.dto.ErrorResponse;
 import com.company.bank_system.exception.Exceptions.*;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.core.convert.ConversionFailedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -11,9 +12,68 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    // Главный обработчик для ошибок валидации (@Valid)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidation(
+            MethodArgumentNotValidException ex,
+            HttpServletRequest request) {
+
+        String message = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+                .reduce((a, b) -> a + "; " + b)
+                .orElse("Ошибка валидации");
+
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                400,
+                "Validation Error",
+                message,
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.badRequest().body(error);
+    }
+
+    // Все кастомные исключения (NotFound, BadRequest и т.д.)
+    @ExceptionHandler({
+            RuntimeException.class,  // сюда попадут все твои кастомные исключения
+            Exception.class          // на всякий случай
+    })
+    public ResponseEntity<ErrorResponse> handleAll(
+            Exception ex,
+            HttpServletRequest request) {
+
+        int status = 500;
+        String errorTitle = "Internal Server Error";
+
+        // Определяем статус по типу исключения (можно расширять)
+        if (ex instanceof IllegalArgumentException ||
+                ex.getClass().getSimpleName().contains("NotFound") ||
+                ex.getClass().getSimpleName().contains("AlreadyExists") ||
+                ex.getClass().getSimpleName().contains("Mismatch")) {
+            status = ex.getClass().getSimpleName().contains("NotFound") ? 404 : 400;
+            errorTitle = ex.getClass().getSimpleName();
+        }
+
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                status,
+                errorTitle,
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(status).body(error);
+    }
+
+
+
 
 
     @ExceptionHandler(InsufficientFundsException.class)
@@ -134,29 +194,6 @@ public class GlobalExceptionHandler {
     }
 
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidationErrors(
-            MethodArgumentNotValidException ex,
-            HttpServletRequest request) {
-
-        String message = ex.getBindingResult()
-                .getFieldErrors()
-                .stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .reduce((a, b) -> a + "; " + b)
-                .orElse("Ошибка валидации");
-
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.BAD_REQUEST.value(),
-                "Validation Error",
-                message,
-                request.getRequestURI()
-        );
-
-        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-    }
-
 
 
 
@@ -196,21 +233,6 @@ public class GlobalExceptionHandler {
 
 
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGenericException(
-            Exception ex,
-            HttpServletRequest request) {
-
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                "Internal Server Error",
-                ex.getMessage(),
-                request.getRequestURI()
-        );
-
-        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
 
 
 
