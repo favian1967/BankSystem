@@ -467,7 +467,7 @@ public class CardService {
         return "**** **** **** " + cardNumber.substring(cardNumber.length() - 4);
     }
 
-    private CardResponse mapToResponse(Card card) {
+    CardResponse mapToResponse(Card card) {
         return new CardResponse(
                 card.getId(),
                 maskCardNumber(card.getCardNumber()),

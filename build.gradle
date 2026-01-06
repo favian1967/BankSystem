@@ -38,8 +38,7 @@ dependencies {
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-
-
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
 
@@ -50,4 +49,9 @@ dependencies {
 
     //ddos
     implementation("com.bucket4j:bucket4j-core:8.7.0")
+
+}
+
+test {
+    useJUnitPlatform()  // ✅ Добавь эту строку!
 }
