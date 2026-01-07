@@ -17,8 +17,19 @@ java {
 repositories {
     mavenCentral()
 }
-
+ext {
+    testcontainersVersion = '1.20.4'
+}
 dependencies {
+
+    // Testcontainers BOM для управления версиями
+    testImplementation platform("org.testcontainers:testcontainers-bom:${testcontainersVersion}")
+
+    // Testcontainers зависимости
+    testImplementation 'org.testcontainers:testcontainers'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:postgresql'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
 
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
@@ -37,11 +48,11 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0'
-
 
     implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
@@ -49,9 +60,7 @@ dependencies {
 
     //ddos
     implementation("com.bucket4j:bucket4j-core:8.7.0")
-
 }
-
 test {
-    useJUnitPlatform()  // ✅ Добавь эту строку!
+    useJUnitPlatform()
 }
