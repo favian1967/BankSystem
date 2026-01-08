@@ -1,10 +1,16 @@
 
 spring:
+  config:
+    import: optional:file:.env[.properties]
+  application:
+    name: Bank_System
+
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/bankdb
-    username: bankuser
-    password: root
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -14,8 +20,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
-
-
 jwt:
-  secret: myverysecretkeythatissuperlongandstrong12345678901234567890
-  expiration: 86400000
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION}
