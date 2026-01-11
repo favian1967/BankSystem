@@ -33,8 +33,12 @@ public class AccountService {
         this.currentUserService = currentUserService;
     }
 
-    public AccountResponse createAccount(CreateAccountRequest request) {
+    public AccountResponse createAccount(CreateAccountRequest request) throws Exception {
         User currentUser = currentUserService.getCurrentUser();
+
+        if (!currentUser.isConfirmed()) {
+            throw new Exception("User is not confirmed");
+        }
 
         log.info("ACCOUNT_CREATE_START userId={} type={} currency={}",
                 currentUser.getId(),

@@ -55,4 +55,8 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
+    private String mailKey;
+
+    private boolean isConfirmed;
+
 }

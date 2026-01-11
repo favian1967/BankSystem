@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Slf4j
@@ -20,13 +22,17 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JWTService jwtService;
+    private final MailSenderService  mailSenderService;
+    private final CurrentUserService currentUserService;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       JWTService jwtService) {
+                       JWTService jwtService, MailSenderService mailSenderService, CurrentUserService currentUserService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.mailSenderService = mailSenderService;
+        this.currentUserService = currentUserService;
     }
 
     public String register(RegisterRequest request) {
@@ -62,6 +68,9 @@ public class AuthService {
         user.setStatus(UserStatus.ACTIVE);
         user.setCreatedAt(LocalDateTime.now());
         user.setRole(UserRole.USER);
+        user.setConfirmed(false);
+
+
 
         userRepository.save(user);
 
@@ -103,6 +112,31 @@ public class AuthService {
         return jwtService.generateToken(user.getEmail());
     }
 
+    public void sendEmailKey(){
+        User currentUser = currentUserService.getCurrentUser();
+
+        String mailKey = generateMailKey();
+        currentUser.setMailKey(mailKey);
+        mailSenderService.send(
+                currentUser.getEmail(),
+                "Your register key",
+                mailKey
+        );
+        userRepository.save(currentUser);
+    }
+
+    public boolean isEmailKeyValid(String key){
+        User currentUser = currentUserService.getCurrentUser();
+        String currentKey = currentUser.getMailKey();
+        if (currentKey == null || !currentKey.equals(key)) {
+            throw new UserNotFoundException("Incorrect key");
+        }
+        currentUser.setConfirmed(true);
+        currentUser.setMailKey(null);
+        userRepository.save(currentUser);
+        return true;
+    }
+
 
 
     private String maskEmail(String email) {
@@ -114,5 +148,9 @@ public class AuthService {
     private String maskPhone(String phone) {
         if (phone.length() < 4) return "***";
         return "***" + phone.substring(phone.length() - 3);
+    }
+
+    private String generateMailKey(){
+        return String.format("%06d", ThreadLocalRandom.current().nextInt(1000000));
     }
 }

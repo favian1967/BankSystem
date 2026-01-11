@@ -5,10 +5,7 @@ import com.company.bank_system.dto.ChangePasswordRequest;
 import com.company.bank_system.dto.ChangePasswordResponse;
 import com.company.bank_system.service.UserService;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
@@ -19,7 +16,7 @@ public class UserController {
         this.userService = userService;
     }
 
-    @PostMapping("/changePassword")
+    @PatchMapping("/changePassword")
     public ChangePasswordResponse changePassword(
             @Valid @RequestBody ChangePasswordRequest request
     ) {
