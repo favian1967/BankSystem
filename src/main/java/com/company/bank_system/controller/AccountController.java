@@ -15,7 +15,7 @@ import com.company.bank_system.entity.enums.Currency;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.util.Map;
-
+// test
 @RestController
 @RequestMapping("/api/accounts")
 public class AccountController {
@@ -136,4 +136,5 @@ public class AccountController {
         boolean exists = accountService.accountExists(accountNumber);
         return Map.of("exists", exists);
     }
+
 }
