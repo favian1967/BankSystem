@@ -90,8 +90,8 @@ class AccountControllerTest {
         testUser.setCreatedAt(LocalDateTime.now());
         testUser.setPhone("+79505551234");
         testUser.setStatus(UserStatus.ACTIVE);
+        testUser.setConfirmed(true);
         testUser = userRepository.save(testUser);
-
         jwtToken = jwtService.generateToken(testUser.getEmail());
     }
 
@@ -130,8 +130,6 @@ class AccountControllerTest {
         assertThat(savedAccount.getStatus()).isEqualTo(AccountStatus.ACTIVE);
         assertThat(savedAccount.getAccountNumber()).startsWith("40817");
         assertThat(savedAccount.getAccountNumber()).hasSize(20);
-
-
 
     }
 
