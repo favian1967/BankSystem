@@ -117,9 +117,9 @@ public class CardController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/admin/getByUser/{userId}")
+    @GetMapping("/admin/getByUserId/{userId}")
     public List<CardResponse> adminGetCardsByUser(@PathVariable Long userId) {
-        return cardService.adminGetCardsByUser(userId);
+        return cardService.adminGetCardsByUserId(userId);
     }
 
     @PreAuthorize("hasRole('ADMIN')")

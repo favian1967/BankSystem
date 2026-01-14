@@ -101,7 +101,7 @@ public class CardService {
                 .toList();
     }
 
-    public List<CardResponse> adminGetCardsByUser(Long userId) {
+    public List<CardResponse> adminGetCardsByUserId(Long userId) {
         User currentUser = currentUserService.getCurrentUser();
 
         log.info("ADMIN_GET_CARDS_START adminId={} targetUserId={}",
