@@ -2,11 +2,13 @@ package com.company.bank_system.service;
 
 import com.company.bank_system.dto.LoginRequest;
 import com.company.bank_system.dto.RegisterRequest;
+import com.company.bank_system.entity.RevokedToken;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.entity.enums.User.UserStatus;
 import com.company.bank_system.exception.Exceptions.UserAlreadyExistsException;
 import com.company.bank_system.exception.Exceptions.UserNotFoundException;
+import com.company.bank_system.repo.RevokedTokenRepository;
 import com.company.bank_system.repo.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,15 +26,25 @@ public class AuthService {
     private final JWTService jwtService;
     private final MailSenderService  mailSenderService;
     private final CurrentUserService currentUserService;
-
+    private final RevokedTokenRepository revokedTokenRepository;
+    private final TokenRevocationService tokenRevocationService;
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       JWTService jwtService, MailSenderService mailSenderService, CurrentUserService currentUserService) {
+                       JWTService jwtService, MailSenderService mailSenderService, CurrentUserService currentUserService, RevokedTokenRepository revokedTokenRepository, TokenRevocationService tokenRevocationService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.mailSenderService = mailSenderService;
         this.currentUserService = currentUserService;
+        this.revokedTokenRepository = revokedTokenRepository;
+        this.tokenRevocationService = tokenRevocationService;
+    }
+
+    public void logout(String token) {
+        tokenRevocationService.revoke(token);
+    }
+    public boolean isTokenRevoked(String token) {
+        return revokedTokenRepository.existsByToken(token);
     }
 
     public String register(RegisterRequest request) {

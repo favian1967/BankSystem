@@ -2,7 +2,9 @@ package com.company.bank_system.security;
 
 import com.company.bank_system.entity.User;
 import com.company.bank_system.repo.UserRepository;
+import com.company.bank_system.service.AuthService;
 import com.company.bank_system.service.JWTService;
+import com.company.bank_system.service.TokenRevocationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,18 +21,19 @@ import java.io.IOException;
 import java.util.List;
 
 
-//catch all the requests and check jwt
 
-
+// This filter runs on every request
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter { //OncePerRequestFilter every requests
 
     private final JWTService jwtService;
     private final UserRepository userRepository;
+    private final TokenRevocationService tokenRevocationService;
 
-    public JwtAuthenticationFilter(JWTService jwtService, UserRepository userRepository) {
+    public JwtAuthenticationFilter(JWTService jwtService, UserRepository userRepository, TokenRevocationService tokenRevocationService) {
         this.jwtService = jwtService;
         this.userRepository = userRepository;
+        this.tokenRevocationService = tokenRevocationService;
     }
 
     @Override
@@ -46,6 +49,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter { //OncePerReq
             return;
         }
 
+        final String jwt = authHeader.substring(7);
+        if (tokenRevocationService.isRevoked(jwt)) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("{\"error\": \"Token has been revoked\"}");
+            return;
+        }
         // 3.del barrier
         String token = authHeader.substring(7);
 
