@@ -1,0 +1,221 @@
+<a id="readme-top"></a>
+
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![License][license-shield]][license-url]
+
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/your_username/bank-system">
+    <img src="images/logo.png" alt="BankSystem Logo" width="80" height="80">
+  </a>
+
+  <h3 align="center">BankSystem</h3>
+
+  <p align="center">
+    Spring Boot сервис для банковского домена с JWT-аутентификацией, PostgreSQL и почтовыми уведомлениями.
+    <br />
+    <a href="https://github.com/your_username/bank-system"><strong>Документация проекта »</strong></a>
+    <br />
+    <br />
+    <a href="http://localhost:8080/swagger-ui/index.html">Swagger UI</a>
+    ·
+    <a href="http://localhost:8080/v3/api-docs">OpenAPI JSON</a>
+    ·
+    <a href="https://github.com/your_username/bank-system/issues">Сообщить об ошибке</a>
+  </p>
+</div>
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Оглавление</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">О проекте</a>
+      <ul>
+        <li><a href="#built-with">Стек</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Быстрый старт</a>
+      <ul>
+        <li><a href="#prerequisites">Требования</a></li>
+        <li><a href="#installation">Установка и запуск</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Использование</a></li>
+    <li><a href="#configuration">Конфигурация</a></li>
+    <li><a href="#testing">Тестирование</a></li>
+    <li><a href="#roadmap">Планы</a></li>
+    <li><a href="#contributing">Контрибьютинг</a></li>
+    <li><a href="#license">Лицензия</a></li>
+    <li><a href="#contact">Контакты</a></li>
+    <li><a href="#acknowledgments">Благодарности</a></li>
+  </ol>
+</details>
+
+<!-- ABOUT THE PROJECT -->
+## О проекте
+
+**BankSystem** — это Spring Boot приложение для банковского домена с JWT-аутентификацией, интеграцией с PostgreSQL и почтовым сервисом. Проект поддерживает OpenAPI/Swagger и ориентирован на удобный локальный запуск и контейнеризацию.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### Стек
+
+* [![Java][java-shield]][java-url]
+* [![Spring Boot][spring-boot-shield]][spring-boot-url]
+* [![PostgreSQL][postgres-shield]][postgres-url]
+* [![JWT][jwt-shield]][jwt-url]
+* [![Docker][docker-shield]][docker-url]
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- GETTING STARTED -->
+## Быстрый старт
+
+### Требования
+
+- **Java 21**
+- **Docker** и **Docker Compose** (для контейнерного запуска)
+- **PostgreSQL** (если запускать без Docker)
+
+### Установка и запуск
+
+1. Скопируйте пример окружения:
+   ```bash
+   cp .env.example .env
+   ```
+2. Заполните переменные в `.env`.
+3. Выберите сценарий запуска.
+
+#### Локально (без Docker)
+
+1. Убедитесь, что PostgreSQL запущен.
+2. Укажите локальный URL базы данных, например:
+   ```bash
+   DB_URL=jdbc:postgresql://localhost:5432/bank_db
+   ```
+3. Запустите приложение:
+   ```bash
+   ./gradlew bootRun
+   ```
+
+#### Через Docker Compose
+
+```bash
+docker compose up --build
+```
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- USAGE EXAMPLES -->
+## Использование
+
+- Приложение: [http://localhost:8080](http://localhost:8080)
+- Swagger UI: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
+- OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
+
+> Если Swagger UI недоступен, убедитесь, что приложение стартовало без ошибок и порт 8080 свободен.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- CONFIGURATION -->
+## Конфигурация
+
+Приложение использует `.env` файл, который автоматически подхватывается через `spring.config.import: optional:file:.env[.properties]`.
+
+| Переменная | Описание |
+| --- | --- |
+| `JWT_SECRET` | Секрет для подписи JWT токенов. |
+| `JWT_EXPIRATION` | Время жизни токена (мс). |
+| `DB_URL` | JDBC URL до PostgreSQL. |
+| `DB_USERNAME` / `DB_PASSWORD` | Логин/пароль БД. |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Настройки контейнера Postgres. |
+| `EMAIL_USERNAME` / `EMAIL_PASSWORD` | Данные SMTP (пример — Gmail). |
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- TESTING -->
+## Тестирование
+
+```bash
+./gradlew test
+```
+
+Тесты используют Testcontainers, поэтому требуется установленный Docker.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- ROADMAP -->
+## Планы
+
+- [ ] Описать ключевые эндпоинты и сценарии использования.
+- [ ] Добавить диаграммы и схемы базы данных.
+- [ ] Сформировать раздел по мониторингу и логированию.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- CONTRIBUTING -->
+## Контрибьютинг
+
+Если хотите улучшить проект, пожалуйста:
+
+1. Форкните репозиторий.
+2. Создайте ветку для изменений (`git checkout -b feature/your-feature`).
+3. Сделайте коммит (`git commit -m 'Add feature'`).
+4. Отправьте ветку (`git push origin feature/your-feature`).
+5. Откройте Pull Request.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- LICENSE -->
+## Лицензия
+
+Лицензия не указана. Если нужна лицензия, добавьте файл `LICENSE` и обновите этот раздел.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- CONTACT -->
+## Контакты
+
+Автор проекта: укажите свои данные (email/telegram/linkedIn).
+
+Project Link: [https://github.com/your_username/bank-system](https://github.com/your_username/bank-system)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- ACKNOWLEDGMENTS -->
+## Благодарности
+
+- [Spring Boot](https://spring.io/projects/spring-boot)
+- [Springdoc OpenAPI](https://springdoc.org/)
+- [Testcontainers](https://www.testcontainers.org/)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- MARKDOWN LINKS & IMAGES -->
+[contributors-shield]: https://img.shields.io/github/contributors/your_username/bank-system.svg?style=for-the-badge
+[contributors-url]: https://github.com/your_username/bank-system/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/your_username/bank-system.svg?style=for-the-badge
+[forks-url]: https://github.com/your_username/bank-system/network/members
+[stars-shield]: https://img.shields.io/github/stars/your_username/bank-system.svg?style=for-the-badge
+[stars-url]: https://github.com/your_username/bank-system/stargazers
+[issues-shield]: https://img.shields.io/github/issues/your_username/bank-system.svg?style=for-the-badge
+[issues-url]: https://github.com/your_username/bank-system/issues
+[license-shield]: https://img.shields.io/github/license/your_username/bank-system.svg?style=for-the-badge
+[license-url]: https://github.com/your_username/bank-system/blob/main/LICENSE
+
+[java-shield]: https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white
+[java-url]: https://openjdk.org/
+[spring-boot-shield]: https://img.shields.io/badge/Spring%20Boot-4.0.0-6DB33F?style=for-the-badge&logo=springboot&logoColor=white
+[spring-boot-url]: https://spring.io/projects/spring-boot
+[postgres-shield]: https://img.shields.io/badge/PostgreSQL-15-316192?style=for-the-badge&logo=postgresql&logoColor=white
+[postgres-url]: https://www.postgresql.org/
+[jwt-shield]: https://img.shields.io/badge/JWT-0.12.x-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white
+[jwt-url]: https://github.com/jwtk/jjwt
+[docker-shield]: https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white
+[docker-url]: https://docs.docker.com/compose/
