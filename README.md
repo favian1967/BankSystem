@@ -1,34 +1,5 @@
 <a id="readme-top"></a>
 
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![License][license-shield]][license-url]
-
-<!-- PROJECT LOGO -->
-<br />
-<div align="center">
-  <a href="https://github.com/your_username/bank-system">
-    <img src="images/logo.png" alt="BankSystem Logo" width="80" height="80">
-  </a>
-
-  <h3 align="center">BankSystem</h3>
-
-  <p align="center">
-    Spring Boot сервис для банковского домена с JWT-аутентификацией, PostgreSQL и почтовыми уведомлениями.
-    <br />
-    <a href="https://github.com/your_username/bank-system"><strong>Документация проекта »</strong></a>
-    <br />
-    <br />
-    <a href="http://localhost:8080/swagger-ui/index.html">Swagger UI</a>
-    ·
-    <a href="http://localhost:8080/v3/api-docs">OpenAPI JSON</a>
-    ·
-    <a href="https://github.com/your_username/bank-system/issues">Сообщить об ошибке</a>
-  </p>
-</div>
-
 <!-- TABLE OF CONTENTS -->
 <details>
   <summary>Оглавление</summary>
@@ -60,7 +31,7 @@
 <!-- ABOUT THE PROJECT -->
 ## О проекте
 
-**BankSystem** — это Spring Boot приложение для банковского домена с JWT-аутентификацией, интеграцией с PostgreSQL и почтовым сервисом. Проект поддерживает OpenAPI/Swagger и ориентирован на удобный локальный запуск и контейнеризацию.
+**BankSystem** — это Spring Boot приложение для банковского домена с JWT-аутентификацией, интеграцией с PostgreSQL и почтовым сервисом. Проект так же ориентирован на удобный локальный запуск и контейнеризацию.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -115,11 +86,7 @@ docker compose up --build
 <!-- USAGE EXAMPLES -->
 ## Использование
 
-- Приложение: [http://localhost:8080](http://localhost:8080)
-- Swagger UI: [http://localhost:8080/swagger-ui/index.html](http://localhost:8080/swagger-ui/index.html)
-- OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
-
-> Если Swagger UI недоступен, убедитесь, что приложение стартовало без ошибок и порт 8080 свободен.
+- Приложение будет находится на: [http://localhost:8080](http://localhost:8080)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -172,19 +139,12 @@ docker compose up --build
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-<!-- LICENSE -->
-## Лицензия
-
-Лицензия не указана. Если нужна лицензия, добавьте файл `LICENSE` и обновите этот раздел.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 <!-- CONTACT -->
 ## Контакты
 
-Автор проекта: укажите свои данные (email/telegram/linkedIn).
+Автор проекта: tg - @Rafink, x - https://x.com/Favian4747
 
-Project Link: [https://github.com/your_username/bank-system](https://github.com/your_username/bank-system)
+Project Link: [https://github.com/favian1967/BankSystem](https://github.com/favian1967/BankSystem)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
