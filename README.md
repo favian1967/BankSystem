@@ -21,10 +21,7 @@
     <li><a href="#configuration">Конфигурация</a></li>
     <li><a href="#testing">Тестирование</a></li>
     <li><a href="#roadmap">Планы</a></li>
-    <li><a href="#contributing">Контрибьютинг</a></li>
-    <li><a href="#license">Лицензия</a></li>
     <li><a href="#contact">Контакты</a></li>
-    <li><a href="#acknowledgments">Благодарности</a></li>
   </ol>
 </details>
 
@@ -145,15 +142,6 @@ docker compose up --build
 Автор проекта: tg - @Rafink, x - https://x.com/Favian4747
 
 Project Link: [https://github.com/favian1967/BankSystem](https://github.com/favian1967/BankSystem)
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- ACKNOWLEDGMENTS -->
-## Благодарности
-
-- [Spring Boot](https://spring.io/projects/spring-boot)
-- [Springdoc OpenAPI](https://springdoc.org/)
-- [Testcontainers](https://www.testcontainers.org/)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
