@@ -122,20 +122,6 @@ docker compose up --build
 - [ ] Сформировать раздел по мониторингу и логированию.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-<!-- CONTRIBUTING -->
-## Контрибьютинг
-
-Если хотите улучшить проект, пожалуйста:
-
-1. Форкните репозиторий.
-2. Создайте ветку для изменений (`git checkout -b feature/your-feature`).
-3. Сделайте коммит (`git commit -m 'Add feature'`).
-4. Отправьте ветку (`git push origin feature/your-feature`).
-5. Откройте Pull Request.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
 <!-- CONTACT -->
 ## Контакты
 
@@ -146,8 +132,6 @@ Project Link: [https://github.com/favian1967/BankSystem](https://github.com/favi
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[contributors-shield]: https://img.shields.io/github/contributors/your_username/bank-system.svg?style=for-the-badge
-[contributors-url]: https://github.com/your_username/bank-system/graphs/contributors
 [forks-shield]: https://img.shields.io/github/forks/your_username/bank-system.svg?style=for-the-badge
 [forks-url]: https://github.com/your_username/bank-system/network/members
 [stars-shield]: https://img.shields.io/github/stars/your_username/bank-system.svg?style=for-the-badge
