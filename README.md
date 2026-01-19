@@ -145,6 +145,14 @@ POST /api/transactions/transfer
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+
+## Database schema
+
+<p align="center">
+  <img src="src/main/resources/static/DB_DIAGRAM.png" width="800">
+</p>
+
+
 <!-- ROADMAP -->
 ## Планы
 
