@@ -103,6 +103,36 @@ docker compose up --build
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## API Overview
+
+### Authentication
+POST /api/auth/register  
+POST /api/auth/login  
+POST /api/auth/logout  
+POST /api/auth/send 
+
+
+### Accounts
+POST   /api/accounts/add  
+GET    /api/accounts/getById/{id}  
+GET    /api/accounts/{id}/balance  
+PATCH  /api/accounts/{id}/status  
+DELETE /api/accounts/{id}/close  
+
+### Cards
+POST /api/cards/createCard  
+GET  /api/cards/getMyCards  
+POST /api/cards/block/{id}  
+POST /api/cards/unblock/{id}  
+
+### Transactions
+POST /api/transactions/deposit  
+POST /api/transactions/withdraw  
+POST /api/transactions/transfer  
+
+> Проект содержит так же другие менее значимые эндпоинты с которыми можно ознакомится в Controllers
+
+
 <!-- TESTING -->
 ## Тестирование
 
@@ -117,7 +147,6 @@ docker compose up --build
 <!-- ROADMAP -->
 ## Планы
 
-- [ ] Описать ключевые эндпоинты и сценарии использования.
 - [ ] Добавить диаграммы и схемы базы данных.
 - [ ] Сформировать раздел по мониторингу и логированию.
 
