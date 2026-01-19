@@ -8,10 +8,9 @@ import com.company.bank_system.entity.Transaction;
 import com.company.bank_system.service.TransactionService;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PostAuthorize;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/transactions")
@@ -44,6 +43,14 @@ public class TransactionController {
     ){
         TransactionResponse transaction = transactionService.transfer(transferRequest);
         return transaction;
+    }
+
+    @GetMapping("/account/{accountId}/recent")
+    public List<TransactionResponse> getRecentTransactions(
+            @PathVariable Long accountId,
+            @RequestParam(defaultValue = "5") int limit
+    ) {
+        return transactionService.getRecentTransactions(accountId, limit);
     }
 
 }

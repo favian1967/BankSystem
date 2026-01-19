@@ -12,6 +12,8 @@ import com.company.bank_system.repo.AccountRepository;
 import com.company.bank_system.repo.TransactionRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -226,7 +228,23 @@ public class TransactionService {
 
         return transactions;
     }
+    public List<TransactionResponse> getRecentTransactions(Long accountId, int limit) {
+        log.debug("GET_RECENT_TRANSACTIONS accountId={} limit={}", accountId, limit);
 
+        Account account = accountService.getAccountEntityById(accountId);
+        int safeLimit = Math.min(Math.max(limit, 1), 50);
+        List<Transaction> transactions = transactionRepository.findByFromAccountOrToAccount(
+                account,
+                account,
+                PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "createdAt"))
+        );
+
+        log.info("GET_RECENT_TRANSACTIONS_SUCCESS accountId={} count={}", accountId, transactions.size());
+
+        return transactions.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
     private TransactionResponse mapToResponse(Transaction transaction) {
         return new TransactionResponse(
                 transaction.getId(),

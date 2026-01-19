@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BankSystem Dashboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<header class="app-header">
+    <div>
+        <h1>BankSystem</h1>
+        <p class="subtitle">Мини-дашборд: балансы, карты, последние транзакции</p>
+    </div>
+    <button id="logoutButton" class="ghost-button hidden" type="button">Выйти</button>
+</header>
+
+<main class="app-shell">
+    <section class="card auth-card" id="authSection">
+        <h2>Вход</h2>
+        <form id="loginForm" class="form-grid">
+            <label>
+                Email
+                <input type="email" name="email" required />
+            </label>
+            <label>
+                Пароль
+                <input type="password" name="password" required />
+            </label>
+            <button type="submit">Войти</button>
+        </form>
+
+        <div class="divider">или</div>
+
+        <h3>Регистрация</h3>
+        <form id="registerForm" class="form-grid">
+            <label>
+                Email
+                <input type="email" name="email" required />
+            </label>
+            <label>
+                Пароль
+                <input type="password" name="password" required />
+            </label>
+            <label>
+                Имя
+                <input type="text" name="firstName" required />
+            </label>
+            <label>
+                Телефон (+7XXXXXXXXXX)
+                <input type="tel" name="phone" placeholder="+7XXXXXXXXXX" required />
+            </label>
+            <button type="submit">Создать аккаунт</button>
+        </form>
+        <p id="authMessage" class="hint"></p>
+    </section>
+
+    <section class="dashboard hidden" id="dashboardSection">
+        <div class="card">
+            <div class="card-header">
+                <h2>Аккаунты и балансы</h2>
+                <span id="accountsCount" class="chip">0 счетов</span>
+            </div>
+            <div id="accountsList" class="list"></div>
+            <div id="totalBalances" class="totals"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Карты</h2>
+                <span id="cardsCount" class="chip">0 карт</span>
+            </div>
+            <div id="cardsList" class="list"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>Последние транзакции</h2>
+                <span class="chip">за выбранный счет</span>
+            </div>
+            <div id="transactionsList" class="list"></div>
+        </div>
+    </section>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
