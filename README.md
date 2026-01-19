@@ -152,13 +152,6 @@ POST /api/transactions/transfer
   <img src="src/main/resources/static/DB_DIAGRAM.png" width="800">
 </p>
 
-
-<!-- ROADMAP -->
-## Планы
-
-- [ ] Добавить диаграммы и схемы базы данных.
-- [ ] Сформировать раздел по мониторингу и логированию.
-
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 <!-- CONTACT -->
 ## Контакты
