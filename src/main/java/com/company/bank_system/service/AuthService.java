@@ -6,6 +6,7 @@ import com.company.bank_system.entity.RevokedToken;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.entity.enums.User.UserStatus;
+import com.company.bank_system.exception.Exceptions.AccessDeniedException;
 import com.company.bank_system.exception.Exceptions.UserAlreadyExistsException;
 import com.company.bank_system.exception.Exceptions.UserNotFoundException;
 import com.company.bank_system.repo.RevokedTokenRepository;
@@ -107,6 +108,15 @@ public class AuthService {
                             "User with email " + request.email() + " not found"
                     );
                 });
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            log.warn("LOGIN_FAILED_USER_BLOCKED userId={} status={}",
+                    user.getId(),
+                    user.getStatus()
+            );
+            throw new AccessDeniedException("User account is blocked");
+        }
+
 
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             log.warn("LOGIN_FAILED_BAD_PASSWORD userId={} email={}",
