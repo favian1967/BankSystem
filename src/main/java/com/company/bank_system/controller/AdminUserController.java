@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+//ONLY FOR TESTS
+
 @RestController
 @RequestMapping("/api/admin")
 public class AdminUserController {
@@ -22,13 +24,6 @@ public class AdminUserController {
         this.accountRepository = accountRepository;
     }
 
-    @GetMapping("/hello")
-    public String hello(
-            Authentication authentication
-    ) {
-        String email = authentication.getName();
-        return "Hello, " + email + "!";
-    }
 
     @GetMapping("/getAll")
     public List<Card> getAllCards(

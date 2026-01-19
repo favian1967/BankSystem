@@ -37,7 +37,6 @@ public class AuthController {
     }
     @PostMapping("/send")
     public void send(
-
     ){
         authService.sendEmailKey();
     }
