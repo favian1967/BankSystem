@@ -85,6 +85,7 @@ docker compose up --build
 
 - Приложение будет находится на: [http://localhost:8080](http://localhost:8080)
 - Так же можно перейти на html страницу для просмотра общей информации [http://localhost:8080](http://localhost:8080)
+- Так же учтите что в проекте стоит RateLimiterFilter с ограничениями 50 токенов в минуту
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
