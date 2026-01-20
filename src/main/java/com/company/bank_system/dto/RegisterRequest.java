@@ -12,8 +12,7 @@ public record RegisterRequest (
         @Size(max = 254, message = "Email is long")
         String email,
         @NotBlank(message = "password is required!")
-        //TODO in prod uncomment (cuz my account has login and password a,a ))) )
-//        @Size(min = 8, max = 128, message = "password must be 8 - 128 symbols")
+        @Size(min = 8, max = 128, message = "password must be 8 - 128 symbols")
         String password,
         @NotBlank(message = "firstName is required")
         @Pattern(regexp = "^[A-Za-zА-Яа-яЁё\\-\\s]+$", message = "Only symbols:  A-Za-zА-Яа-яЁё")

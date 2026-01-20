@@ -2,7 +2,6 @@ package com.company.bank_system.security;
 
 import com.company.bank_system.entity.User;
 import com.company.bank_system.repo.UserRepository;
-import com.company.bank_system.service.AuthService;
 import com.company.bank_system.service.JWTService;
 import com.company.bank_system.service.TokenRevocationService;
 import jakarta.servlet.FilterChain;

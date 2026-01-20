@@ -2,7 +2,6 @@ package com.company.bank_system.controller;
 
 import com.company.bank_system.dto.AccountResponse;
 import com.company.bank_system.dto.CreateAccountRequest;
-import com.company.bank_system.repo.AccountRepository;
 import com.company.bank_system.service.AccountService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;

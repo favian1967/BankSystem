@@ -2,7 +2,6 @@ package com.company.bank_system.service;
 
 import com.company.bank_system.dto.LoginRequest;
 import com.company.bank_system.dto.RegisterRequest;
-import com.company.bank_system.entity.RevokedToken;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.entity.enums.User.UserStatus;
@@ -15,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
-import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service

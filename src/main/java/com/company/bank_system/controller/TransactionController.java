@@ -4,11 +4,9 @@ import com.company.bank_system.dto.DepositRequest;
 import com.company.bank_system.dto.TransactionResponse;
 import com.company.bank_system.dto.TransferRequest;
 import com.company.bank_system.dto.WithdrawRequest;
-import com.company.bank_system.entity.Transaction;
 import com.company.bank_system.service.TransactionService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
-import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

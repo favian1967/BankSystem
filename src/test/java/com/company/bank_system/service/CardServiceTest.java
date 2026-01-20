@@ -218,6 +218,4 @@ public class CardServiceTest {
         assertEquals(cards.get(0).getUser(), user1);
 
     }
-
-
 }
