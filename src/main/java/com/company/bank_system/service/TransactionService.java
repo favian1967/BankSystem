@@ -12,7 +12,9 @@ import com.company.bank_system.repo.AccountRepository;
 import com.company.bank_system.repo.TransactionRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -215,33 +217,33 @@ public class TransactionService {
         return mapToResponse(saved);
     }
 
-    public List<Transaction> getAccountTransactions(Long accountId) {
+    public Page<TransactionResponse> getAccountTransactions(Long accountId, int page, int size) {
         log.debug("GET_TRANSACTIONS accountId={}", accountId);
 
         Account account = accountService.getAccountEntityById(accountId);
-        List<Transaction> transactions = transactionRepository.findByFromAccountOrToAccount(account, account);
 
-        log.info("GET_TRANSACTIONS_SUCCESS accountId={} count={}",
-                accountId,
-                transactions.size()
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by("createdAt").descending()
         );
-
-        return transactions;
+        return transactionRepository
+                .findByFromAccountOrToAccount(account, account, pageable)
+                .map(this::mapToResponse);
     }
+
     public List<TransactionResponse> getRecentTransactions(Long accountId, int limit) {
         log.debug("GET_RECENT_TRANSACTIONS accountId={} limit={}", accountId, limit);
+        int safeLimit = Math.min(Math.max(limit, 1), 50);
 
         Account account = accountService.getAccountEntityById(accountId);
-        int safeLimit = Math.min(Math.max(limit, 1), 50);
-        List<Transaction> transactions = transactionRepository.findByFromAccountOrToAccount(
-                account,
-                account,
-                PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "createdAt"))
-        );
-
-        log.info("GET_RECENT_TRANSACTIONS_SUCCESS accountId={} count={}", accountId, transactions.size());
-
-        return transactions.stream()
+        return transactionRepository
+                .findByFromAccountOrToAccount(
+                        account,
+                        account,
+                        PageRequest.of(0, safeLimit, Sort.by("createdAt").descending())
+                )
+                .stream()
                 .map(this::mapToResponse)
                 .toList();
     }

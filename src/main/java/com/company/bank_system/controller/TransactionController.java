@@ -7,6 +7,7 @@ import com.company.bank_system.dto.WithdrawRequest;
 import com.company.bank_system.entity.Transaction;
 import com.company.bank_system.service.TransactionService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -45,10 +46,21 @@ public class TransactionController {
         return transaction;
     }
 
+    @GetMapping("/account/{accountId}")
+    public Page<TransactionResponse> getTransactions(
+            @PathVariable Long accountId,
+            @RequestParam int page,
+            @RequestParam int size
+    ) {
+        return transactionService.getAccountTransactions(accountId, page, size);
+    }
+
+
     @GetMapping("/account/{accountId}/recent")
     public List<TransactionResponse> getRecentTransactions(
             @PathVariable Long accountId,
             @RequestParam(defaultValue = "5") int limit
+
     ) {
         return transactionService.getRecentTransactions(accountId, limit);
     }
