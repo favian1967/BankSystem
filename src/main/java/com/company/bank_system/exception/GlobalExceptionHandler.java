@@ -18,7 +18,6 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Главный обработчик для ошибок валидации (@Valid)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
             MethodArgumentNotValidException ex,
@@ -40,10 +39,26 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(error);
     }
 
-    // Все кастомные исключения (NotFound, BadRequest и т.д.)
+    @ExceptionHandler(IdempotentException.class)
+    ResponseEntity<ErrorResponse> handleIdempotent(
+            IdempotentException ex,
+            HttpServletRequest request
+    ) {
+
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                409,
+                "Idempotent Error",
+                "Idempotency-Key already used",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(409).body(error);
+    }
+
     @ExceptionHandler({
-            RuntimeException.class,  // сюда попадут все твои кастомные исключения
-            Exception.class          // на всякий случай
+            RuntimeException.class,
+            Exception.class
     })
     public ResponseEntity<ErrorResponse> handleAll(
             Exception ex,
@@ -52,7 +67,6 @@ public class GlobalExceptionHandler {
         int status = 500;
         String errorTitle = "Internal Server Error";
 
-        // Определяем статус по типу исключения (можно расширять)
         if (ex instanceof IllegalArgumentException ||
                 ex.getClass().getSimpleName().contains("NotFound") ||
                 ex.getClass().getSimpleName().contains("AlreadyExists") ||

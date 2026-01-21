@@ -31,7 +31,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                     FilterChain filterChain) throws ServletException, IOException {
 
         String clientIP = getClientIP(request);
-
+        
         log.debug("RATE_LIMIT_CHECK ip={} uri={}", clientIP, request.getRequestURI());
 
         Bucket bucket = resolveBucket(clientIP);

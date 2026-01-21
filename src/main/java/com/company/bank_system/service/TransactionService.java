@@ -2,21 +2,30 @@ package com.company.bank_system.service;
 
 import com.company.bank_system.dto.*;
 import com.company.bank_system.entity.Account;
+import com.company.bank_system.entity.IdempotentEntity;
 import com.company.bank_system.entity.Transaction;
+import com.company.bank_system.entity.enums.Currency;
+import com.company.bank_system.entity.enums.Idempotent.IdempotentStatus;
 import com.company.bank_system.entity.enums.Transaction.TransactionStatus;
 import com.company.bank_system.entity.enums.Transaction.TransactionType;
 import com.company.bank_system.exception.Exceptions.CurrencyMismatchException;
+import com.company.bank_system.exception.Exceptions.IdempotentException;
 import com.company.bank_system.exception.Exceptions.InsufficientFundsException;
 import com.company.bank_system.exception.Exceptions.InvalidAmountException;
 import com.company.bank_system.repo.AccountRepository;
+import com.company.bank_system.repo.IdempotentRepository;
 import com.company.bank_system.repo.TransactionRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -30,21 +39,37 @@ public class TransactionService {
     private final AccountService accountService;
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
+    private final IdempotentRepository idempotentRepository;
 
-    public TransactionService(AccountService accountService, AccountRepository accountRepository, TransactionRepository transactionRepository) {
+    public TransactionService(AccountService accountService, AccountRepository accountRepository, TransactionRepository transactionRepository, IdempotentRepository idempotentRepository) {
         this.accountService = accountService;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
+        this.idempotentRepository = idempotentRepository;
     }
 
     @Transactional
-    public TransactionResponse deposit(DepositRequest depositRequest) {
+    public TransactionResponse deposit(DepositRequest depositRequest, String idemKey) {
         log.info("DEPOSIT_START accountId={} amount={}",
                 depositRequest.accountId(),
                 depositRequest.amount()
         );
 
         Account account = accountService.getAccountEntityById(depositRequest.accountId());
+
+        IdempotentEntity idem;
+
+        try{
+            idem = new IdempotentEntity();
+            idem.setAccount(accountRepository.findById(depositRequest.accountId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"))
+            );
+            idem.setIdempotencyKey(idemKey);
+            idem.setStatus(IdempotentStatus.IN_PROGRESS);
+            idempotentRepository.saveAndFlush(idem);
+        } catch (DataIntegrityViolationException e) {
+            throw new IdempotentException(e.getMessage());
+        }
 
         if (depositRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
             log.error("DEPOSIT_INVALID_AMOUNT accountId={} amount={}",
@@ -53,6 +78,7 @@ public class TransactionService {
             );
             throw new InvalidAmountException("Deposit amount must be greater than 0");
         }
+
 
         BigDecimal newBalance = account.getBalance().add(depositRequest.amount());
         account.setBalance(newBalance);

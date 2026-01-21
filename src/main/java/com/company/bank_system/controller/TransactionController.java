@@ -23,9 +23,10 @@ public class TransactionController {
 
     @PostMapping("/deposit")
     public TransactionResponse deposit(
-            @Valid @RequestBody DepositRequest depositRequest
+            @Valid @RequestBody DepositRequest depositRequest,
+            @RequestHeader("Idempotency-Key") String key
     ) {
-        TransactionResponse transaction = transactionService.deposit(depositRequest);
+        TransactionResponse transaction = transactionService.deposit(depositRequest, key);
         return transaction;
     }
     @PostMapping("/withdraw")
