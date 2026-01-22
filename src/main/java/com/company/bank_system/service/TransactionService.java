@@ -104,18 +104,35 @@ public class TransactionService {
                 depositRequest.amount(),
                 newBalance
         );
-
+        idem.setStatus(IdempotentStatus.SUCCESS);
+        idem.setTransactionId(saved.getId());
+        idempotentRepository.save(idem);
         return mapToResponse(saved);
     }
 
     @Transactional
-    public TransactionResponse withdraw(WithdrawRequest withdrawRequest) {
+    public TransactionResponse withdraw(WithdrawRequest withdrawRequest, String idemKey) {
         log.info("WITHDRAW_START accountId={} amount={}",
                 withdrawRequest.accountId(),
                 withdrawRequest.amount()
         );
 
         Account account = accountService.getAccountEntityById(withdrawRequest.accountId());
+
+        IdempotentEntity idem;
+
+        try{
+            idem = new IdempotentEntity();
+            idem.setAccount(accountRepository.findById(withdrawRequest.accountId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"))
+            );
+            idem.setStatus(IdempotentStatus.IN_PROGRESS);
+            idem.setIdempotencyKey(idemKey);
+            idempotentRepository.saveAndFlush(idem);
+        } catch (DataIntegrityViolationException e) {
+            throw new IdempotentException(e.getMessage());
+        }
+
 
         if (withdrawRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
             log.error("WITHDRAW_INVALID_AMOUNT accountId={} amount={}",
@@ -162,12 +179,14 @@ public class TransactionService {
                 withdrawRequest.amount(),
                 newBalance
         );
-
+        idem.setStatus(IdempotentStatus.SUCCESS);
+        idem.setTransactionId(saved.getId());
+        idempotentRepository.save(idem);
         return mapToResponse(saved);
     }
 
     @Transactional
-    public TransactionResponse transfer(TransferRequest transferRequest) throws CurrencyMismatchException {
+    public TransactionResponse transfer(TransferRequest transferRequest, String idemKey) /*throws CurrencyMismatchException*/ {
         log.info("TRANSFER_START fromAccountId={} toAccountNumber={} amount={}",
                 transferRequest.fromAccountId(),
                 maskAccountNumber(transferRequest.toAccountId()),
@@ -177,6 +196,19 @@ public class TransactionService {
         Account fromAccount = accountService.getAnyAccountById(transferRequest.fromAccountId());
         Account toAccount = accountService.getAccountByNumber(transferRequest.toAccountId());
 
+        IdempotentEntity idem;
+
+        try{
+            idem = new IdempotentEntity();
+            idem.setAccount(accountRepository.findById(transferRequest.fromAccountId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"))
+            );
+            idem.setStatus(IdempotentStatus.IN_PROGRESS);
+            idem.setIdempotencyKey(idemKey);
+            idempotentRepository.saveAndFlush(idem);
+        } catch (DataIntegrityViolationException e) {
+            throw new IdempotentException(e.getMessage());
+        }
         if (fromAccount.getId().equals(toAccount.getId())) {
             log.error("TRANSFER_SAME_ACCOUNT accountId={}", fromAccount.getId());
             throw new InvalidAmountException("Cannot transfer to the same account");
@@ -239,7 +271,9 @@ public class TransactionService {
                 toAccount.getId(),
                 transferRequest.amount()
         );
-
+        idem.setStatus(IdempotentStatus.SUCCESS);
+        idem.setTransactionId(saved.getId());
+        idempotentRepository.save(idem);
         return mapToResponse(saved);
     }
 

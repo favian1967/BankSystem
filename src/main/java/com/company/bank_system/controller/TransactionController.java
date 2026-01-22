@@ -31,17 +31,19 @@ public class TransactionController {
     }
     @PostMapping("/withdraw")
     public TransactionResponse withdraw(
-            @Valid @RequestBody WithdrawRequest withdrawRequest
+            @Valid @RequestBody WithdrawRequest withdrawRequest,
+            @RequestHeader("Idempotency-Key") String key
     ) {
-        TransactionResponse transaction = transactionService.withdraw(withdrawRequest);
+        TransactionResponse transaction = transactionService.withdraw(withdrawRequest, key);
         return transaction;
     }
 
     @PostMapping("/transfer")
     public TransactionResponse transfer(
-            @Valid @RequestBody TransferRequest transferRequest
+            @Valid @RequestBody TransferRequest transferRequest,
+            @RequestHeader("Idempotency-Key") String key
     ){
-        TransactionResponse transaction = transactionService.transfer(transferRequest);
+        TransactionResponse transaction = transactionService.transfer(transferRequest, key);
         return transaction;
     }
 
