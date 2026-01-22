@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -66,7 +67,9 @@ public class TransactionService {
             );
             idem.setIdempotencyKey(idemKey);
             idem.setStatus(IdempotentStatus.IN_PROGRESS);
+            idem.setCreatedAt(LocalDateTime.now());
             idempotentRepository.saveAndFlush(idem);
+
         } catch (DataIntegrityViolationException e) {
             throw new IdempotentException(e.getMessage());
         }
@@ -128,6 +131,7 @@ public class TransactionService {
             );
             idem.setStatus(IdempotentStatus.IN_PROGRESS);
             idem.setIdempotencyKey(idemKey);
+            idem.setCreatedAt(LocalDateTime.now());
             idempotentRepository.saveAndFlush(idem);
         } catch (DataIntegrityViolationException e) {
             throw new IdempotentException(e.getMessage());
@@ -205,6 +209,7 @@ public class TransactionService {
             );
             idem.setStatus(IdempotentStatus.IN_PROGRESS);
             idem.setIdempotencyKey(idemKey);
+            idem.setCreatedAt(LocalDateTime.now());
             idempotentRepository.saveAndFlush(idem);
         } catch (DataIntegrityViolationException e) {
             throw new IdempotentException(e.getMessage());
@@ -325,4 +330,14 @@ public class TransactionService {
         if (number == null || number.length() < 6) return "****";
         return number.substring(0, 4) + "****" + number.substring(number.length() - 2);
     }
+
+
+    @Scheduled(fixedRate = 86_400_000)
+    @Transactional
+    public void cleanupIdempotencyKeys(){
+        idempotentRepository.deleteAllByCreatedAtBefore(
+                LocalDateTime.now().minusDays(2)
+        );
+    }
+
 }
