@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: Bank_System_test
+
+  datasource:
+    url: jdbc:tc:postgresql:16-alpine:///testdb
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  mail:
+    host: localhost
+    port: 2525
+    username: test
+    password: test
+
+jwt:
+  secret: test-secret
+  expiration: 3600000
