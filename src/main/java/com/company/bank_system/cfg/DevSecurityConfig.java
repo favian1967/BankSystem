@@ -13,9 +13,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+@Profile({"dev", "test"})
 @Configuration
 @EnableWebSecurity
-@Profile("dev")
 public class DevSecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;

@@ -10,6 +10,7 @@ import com.company.bank_system.entity.enums.Currency;
 import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.entity.enums.User.UserStatus;
 import com.company.bank_system.repo.AccountRepository;
+import com.company.bank_system.repo.IdempotentRepository;
 import com.company.bank_system.repo.TransactionRepository;
 import com.company.bank_system.repo.UserRepository;
 import com.company.bank_system.service.JWTService;
@@ -51,6 +52,8 @@ class TransactionControllerTest {
     private final JWTService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
+    private final IdempotentRepository idempotentRepository;
+
 
     @Autowired
     TransactionControllerTest(
@@ -60,7 +63,7 @@ class TransactionControllerTest {
             TransactionRepository transactionRepository,
             JWTService jwtService,
             PasswordEncoder passwordEncoder,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper, IdempotentRepository idempotentRepository
     ) {
         this.mockMvc = mockMvc;
         this.accountRepository = accountRepository;
@@ -69,6 +72,7 @@ class TransactionControllerTest {
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
+        this.idempotentRepository = idempotentRepository;
     }
 
     @Container
@@ -91,6 +95,11 @@ class TransactionControllerTest {
 
     @BeforeEach
     void setUp() {
+        idempotentRepository.deleteAll();
+        transactionRepository.deleteAll();
+        accountRepository.deleteAll();
+        userRepository.deleteAll();
+
         transactionRepository.deleteAll();
         accountRepository.deleteAll();
         userRepository.deleteAll();
@@ -156,6 +165,7 @@ class TransactionControllerTest {
         // ACT & ASSERT
         mockMvc.perform(post("/api/transactions/deposit")
                         .header("Authorization", "Bearer " + jwtToken)
+                        .header("Idempotency-Key", "test-key-5")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -185,6 +195,7 @@ class TransactionControllerTest {
         // ACT & ASSERT
         mockMvc.perform(post("/api/transactions/deposit")
                         .header("Authorization", "Bearer " + jwtToken)
+                        .header("Idempotency-Key", "test-key-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().is4xxClientError());
@@ -207,6 +218,7 @@ class TransactionControllerTest {
         // ACT & ASSERT
         mockMvc.perform(post("/api/transactions/withdraw")
                         .header("Authorization", "Bearer " + jwtToken)
+                        .header("Idempotency-Key", "test-key-6")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -234,6 +246,7 @@ class TransactionControllerTest {
         // ACT & ASSERT
         mockMvc.perform(post("/api/transactions/withdraw")
                         .header("Authorization", "Bearer " + jwtToken)
+                        .header("Idempotency-Key", "test-key-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().is4xxClientError());
@@ -254,6 +267,7 @@ class TransactionControllerTest {
         // ACT & ASSERT
         mockMvc.perform(post("/api/transactions/withdraw")
                         .header("Authorization", "Bearer " + jwtToken)
+                        .header("Idempotency-Key", "test-key-23")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().is4xxClientError());
@@ -275,6 +289,7 @@ class TransactionControllerTest {
         // ACT & ASSERT
         mockMvc.perform(post("/api/transactions/transfer")
                         .header("Authorization", "Bearer " + jwtToken)
+                        .header("Idempotency-Key", "test-key-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -306,6 +321,7 @@ class TransactionControllerTest {
         // ACT & ASSERT
         mockMvc.perform(post("/api/transactions/transfer")
                         .header("Authorization", "Bearer " + jwtToken)
+                        .header("Idempotency-Key", "test-key-7")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().is4xxClientError());
@@ -340,6 +356,7 @@ class TransactionControllerTest {
         // ACT & ASSERT
         mockMvc.perform(post("/api/transactions/transfer")
                         .header("Authorization", "Bearer " + jwtToken)
+                        .header("Idempotency-Key", "test-key-4")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().is4xxClientError());
@@ -358,6 +375,7 @@ class TransactionControllerTest {
         // ACT & ASSERT
         mockMvc.perform(post("/api/transactions/transfer")
                         .header("Authorization", "Bearer " + jwtToken)
+                        .header("Idempotency-Key", "test-key-1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().is4xxClientError());
@@ -376,6 +394,7 @@ class TransactionControllerTest {
         // ACT & ASSERT
         mockMvc.perform(post("/api/transactions/transfer")
                         .header("Authorization", "Bearer " + jwtToken)
+                        .header("Idempotency-Key", "test-key-22")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().is4xxClientError());
