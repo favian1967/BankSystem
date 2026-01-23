@@ -5,6 +5,7 @@ import com.company.bank_system.entity.Account;
 import com.company.bank_system.entity.Card;
 import com.company.bank_system.repo.AccountRepository;
 import com.company.bank_system.repo.CardRepository;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,6 +15,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
+@Profile("dev")
 public class AdminUserController {
 
     private final CardRepository cardRepository;
