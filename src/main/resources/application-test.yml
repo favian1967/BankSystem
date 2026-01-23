@@ -2,10 +2,6 @@ spring:
   application:
     name: Bank_System_test
 
-  datasource:
-    url: jdbc:tc:postgresql:16-alpine:///testdb
-    driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -18,5 +14,5 @@ spring:
     password: test
 
 jwt:
-  secret: test-secret
+  secret: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
   expiration: 3600000
