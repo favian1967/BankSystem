@@ -11,7 +11,6 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
-@Repository
 public interface IdempotentRepository extends JpaRepository<IdempotentEntity, Long> {
     Optional<IdempotentEntity> findByAccountIdAndIdempotencyKey(Long accountId, String key);
 
