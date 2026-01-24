@@ -42,6 +42,10 @@
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+### Особенности
+
+- Idempotency для транзакций через заголовок `Idempotency-Key` + автоочистка старых записей
+
 <!-- GETTING STARTED -->
 ## Быстрый старт
 
@@ -92,7 +96,9 @@ docker compose up --build
 <!-- CONFIGURATION -->
 ## Конфигурация
 
-Приложение использует `.env` файл, который автоматически подхватывается через `spring.config.import: optional:file:.env[.properties]`.
+- Приложение использует `.env` файл, который автоматически подхватывается через `spring.config.import: optional:file:.env[.properties]`.
+- CORS настроен для dev-сценария (когда frontend запускается отдельно) и включается через профиль `dev`
+- Проект использует Spring Profiles (`dev`, `test`, `prod`). Активный профиль задаётся через `SPRING_PROFILES_ACTIVE`.
 
 | Переменная | Описание |
 | --- | --- |
@@ -102,6 +108,7 @@ docker compose up --build
 | `DB_USERNAME` / `DB_PASSWORD` | Логин/пароль БД. |
 | `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Настройки контейнера Postgres. |
 | `EMAIL_USERNAME` / `EMAIL_PASSWORD` | Данные SMTP (пример — Gmail). |
+| `SPRING_PROFILES_ACTIVE` | Активный профиль Spring (`dev/test/prod`). |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -146,6 +153,11 @@ POST /api/transactions/transfer
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## CI
+
+В проекте настроен GitHub Actions CI: на каждом push/PR автоматически выполняется `./gradlew test` в профиле `test`.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## Database schema
 
@@ -154,6 +166,7 @@ POST /api/transactions/transfer
 </p>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
+
 <!-- CONTACT -->
 ## Контакты
 
