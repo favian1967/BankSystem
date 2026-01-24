@@ -32,6 +32,7 @@ public class ProdSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
+                .cors(httpSecurityCorsConfigurer -> {})
 //                .csrf(csrf -> csrf.enable()) CSRF enabled by default
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(

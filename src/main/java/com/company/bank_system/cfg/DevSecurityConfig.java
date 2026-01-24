@@ -32,7 +32,15 @@ public class DevSecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                //TODO csrf ENABLE
+                /*
+ ============================================================
+                        CORS NOTICE
+ ============================================================
+ CORS оставлен для dev-сценария, когда frontend запускается отдельно (5173/3000), однако сейчас
+ UI отдаётся из Spring static на том же origin (8080), поэтому CORS в текущем виде не обязателен.
+ ============================================================
+*/
+                .cors(cors -> {})
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
