@@ -17,8 +17,11 @@ public class EmailAsyncService {
 
     @Async
     public void sendRegisterKeyEmail(String email, String mailKey) {
-        log.info("EMAIL THREAD = " + Thread.currentThread().getName());
-        mailSenderService.send(email, "Your register key", mailKey);
-    }
+        try {
+            log.info("EMAIL THREAD = {}", Thread.currentThread().getName());
+            mailSenderService.send(email, "Your register key", mailKey);
+        } catch (Exception e) {
+            log.error("Failed to send register key email to {}", email, e);
+        }
 
 }
