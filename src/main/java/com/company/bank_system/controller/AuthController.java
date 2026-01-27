@@ -5,6 +5,7 @@ import com.company.bank_system.dto.LoginRequest;
 import com.company.bank_system.dto.RegisterRequest;
 import com.company.bank_system.service.AuthService;
 import com.company.bank_system.service.CurrentUserService;
+import com.company.bank_system.service.EmailAsyncService;
 import com.company.bank_system.service.MailSenderService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -18,12 +19,10 @@ public class AuthController {
 
     private final AuthService authService;
     private final MailSenderService mailSenderService;
-    private final CurrentUserService currentUserService;
 
-    public AuthController(AuthService authService, MailSenderService mailSenderService, CurrentUserService currentUserService) {
+    public AuthController(AuthService authService, MailSenderService mailSenderService) {
         this.authService = authService;
         this.mailSenderService = mailSenderService;
-        this.currentUserService = currentUserService;
     }
 
     @PostMapping("/register")
@@ -34,11 +33,6 @@ public class AuthController {
     @PostMapping("/login")
     public String login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
-    }
-    @PostMapping("/send")
-    public void send(
-    ){
-        authService.sendEmailKey();
     }
 
     @PostMapping("/logout")
@@ -51,6 +45,12 @@ public class AuthController {
             return Map.of("message", "Logged out successfully");
         }
         return Map.of("message", "Authentication Failed");
+    }
+
+    @PostMapping("/send")
+    public void send(
+    ){
+        authService.sendEmailKey();
     }
 
     @PostMapping("/confirm")

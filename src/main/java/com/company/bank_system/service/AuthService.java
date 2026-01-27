@@ -10,6 +10,7 @@ import com.company.bank_system.exception.Exceptions.UserAlreadyExistsException;
 import com.company.bank_system.exception.Exceptions.UserNotFoundException;
 import com.company.bank_system.repo.RevokedTokenRepository;
 import com.company.bank_system.repo.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -27,9 +28,11 @@ public class AuthService {
     private final CurrentUserService currentUserService;
     private final RevokedTokenRepository revokedTokenRepository;
     private final TokenRevocationService tokenRevocationService;
+    private final EmailAsyncService emailAsyncService;
+
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       JWTService jwtService, MailSenderService mailSenderService, CurrentUserService currentUserService, RevokedTokenRepository revokedTokenRepository, TokenRevocationService tokenRevocationService) {
+                       JWTService jwtService, MailSenderService mailSenderService, CurrentUserService currentUserService, RevokedTokenRepository revokedTokenRepository, TokenRevocationService tokenRevocationService, EmailAsyncService emailAsyncService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -37,6 +40,7 @@ public class AuthService {
         this.currentUserService = currentUserService;
         this.revokedTokenRepository = revokedTokenRepository;
         this.tokenRevocationService = tokenRevocationService;
+        this.emailAsyncService = emailAsyncService;
     }
 
     public void logout(String token) {
@@ -137,14 +141,12 @@ public class AuthService {
 
         String mailKey = generateMailKey();
         currentUser.setMailKey(mailKey);
-        mailSenderService.send(
-                currentUser.getEmail(),
-                "Your register key",
-                mailKey
-        );
         userRepository.save(currentUser);
+
+        emailAsyncService.sendRegisterKeyEmail(currentUser.getEmail(), mailKey);
     }
 
+    @Transactional
     public boolean isEmailKeyValid(String key){
         User currentUser = currentUserService.getCurrentUser();
         String currentKey = currentUser.getMailKey();
