@@ -23,5 +23,5 @@ public class EmailAsyncService {
         } catch (Exception e) {
             log.error("Failed to send register key email to {}", email, e);
         }
-
+    }
 }
