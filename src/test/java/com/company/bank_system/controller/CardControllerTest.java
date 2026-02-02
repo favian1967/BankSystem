@@ -149,7 +149,7 @@ class CardControllerTest {
         card.setUser(user);
         card.setCardNumber("1234567890123456");
         card.setCardHolderName(user.getFirstName() + " " + user.getLastName());
-        card.setCvvHash(passwordEncoder.encode("123"));
+        String cvv1 = "111";
         card.setExpiryDate(LocalDate.now().plusYears(5));
         card.setCardType(cardType);
         card.setPaymentSystem(paymentSystem);

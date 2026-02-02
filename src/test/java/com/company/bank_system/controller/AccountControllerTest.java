@@ -131,8 +131,8 @@ class AccountControllerTest {
         assertThat(savedAccount.getCurrency()).isEqualTo(Currency.USD);
         assertThat(savedAccount.getBalance()).isEqualByComparingTo(BigDecimal.ZERO);
         assertThat(savedAccount.getStatus()).isEqualTo(AccountStatus.ACTIVE);
-        assertThat(savedAccount.getAccountNumber()).startsWith("40817");
-        assertThat(savedAccount.getAccountNumber()).hasSize(20);
+        assertThat(savedAccount.getAccountNumber()).startsWith("99999999");
+        assertThat(savedAccount.getAccountNumber()).hasSize(16);
 
     }
 
@@ -151,7 +151,7 @@ class AccountControllerTest {
         account.setCurrency(Currency.USD);
         account.setBalance(BigDecimal.ZERO);
         account.setStatus(AccountStatus.ACTIVE);
-        account.setAccountNumber("40817840123456789012");
+        account.setAccountNumber("9999999934567890");
         account.setCreatedAt(LocalDateTime.now());
 
         account = accountRepository.save(account);
@@ -177,7 +177,7 @@ class AccountControllerTest {
         account.setCurrency(Currency.USD);
         account.setBalance(BigDecimal.ZERO);
         account.setStatus(AccountStatus.ACTIVE);
-        account.setAccountNumber("40817840123456789012");
+        account.setAccountNumber("999999991234567890");
         account.setCreatedAt(LocalDateTime.now());
         account = accountRepository.save(account);
 
@@ -201,7 +201,7 @@ class AccountControllerTest {
         account.setCurrency(Currency.USD);
         account.setBalance(BigDecimal.ZERO);
         account.setStatus(AccountStatus.CLOSED);  // Уже закрыт
-        account.setAccountNumber("40817840123456789012");
+        account.setAccountNumber("999999991234567890");
         account.setCreatedAt(LocalDateTime.now());
         account = accountRepository.save(account);
 

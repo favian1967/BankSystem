@@ -83,16 +83,16 @@ public class CardService {
         );
 
         return new CardIssueResponse(
-                card.getId(),
+                saved.getId(),
                 maskCardNumber(card.getCardNumber()),
-                card.getCardHolderName(),
-                card.getExpiryDate(),
-                card.getCardType(),
-                card.getPaymentSystem(),
-                card.getStatus(),
-                card.getAccount() != null ? card.getAccount().getId() : null,
+                saved.getCardHolderName(),
+                saved.getExpiryDate(),
+                saved.getCardType(),
+                saved.getPaymentSystem(),
+                saved.getStatus(),
+                saved.getAccount() != null ? card.getAccount().getId() : null,
                 cvv,
-                card.getCreatedAt()
+                saved.getCreatedAt()
         );
     }
 

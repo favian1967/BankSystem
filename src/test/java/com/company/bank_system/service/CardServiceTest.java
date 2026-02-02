@@ -1,5 +1,6 @@
 package com.company.bank_system.service;
 
+import com.company.bank_system.dto.CardIssueResponse;
 import com.company.bank_system.dto.CardResponse;
 import com.company.bank_system.dto.CreateCardRequest;
 import com.company.bank_system.entity.Account;
@@ -83,7 +84,7 @@ public class CardServiceTest {
         card2.setUser(user2);
         card2.setCardNumber("1234567890123452");
         card2.setCardHolderName(user2.getFirstName() + user2.getLastName());
-        card2.setCvvHash("hashed_cvv2");
+        String cvv2 = "222";
         card2.setExpiryDate(LocalDate.now().plusYears(5));
         card2.setCardType(CardType.DEBIT);
         card2.setPaymentSystem(CardPaymentSystem.VISA);
@@ -106,7 +107,7 @@ public class CardServiceTest {
         card1.setUser(user1);
         card1.setCardNumber("1234567890123456");
         card1.setCardHolderName("John Doe");
-        card1.setCvvHash("hashed_cvv");
+        String cvv1 = "111";
         card1.setExpiryDate(LocalDate.now().plusYears(5));
         card1.setCardType(CardType.DEBIT);
         card1.setPaymentSystem(CardPaymentSystem.VISA);
@@ -131,7 +132,7 @@ public class CardServiceTest {
         savedCard.setUser(user1);
         savedCard.setCardNumber("1234567890123456");
         savedCard.setCardHolderName("John Doe");
-        savedCard.setCvvHash("hashed_cvv");
+        String cvv3 = "333";
         savedCard.setExpiryDate(LocalDate.now().plusYears(5));
         savedCard.setCardType(CardType.DEBIT);
         savedCard.setPaymentSystem(CardPaymentSystem.VISA);
@@ -141,11 +142,10 @@ public class CardServiceTest {
         when(currentUserService.getCurrentUser()).thenReturn(user1);
         when(accountService.getAccountEntityById(request.accountId())).thenReturn(account1);
         when(cardRepository.existsByCardNumber(any())).thenReturn(false);
-        when(passwordEncoder.encode(any())).thenReturn("hashed_cvv");
         when(cardRepository.save(any(Card.class))).thenReturn(savedCard);
 
         //ACT
-        CardResponse cardResponse = cardService.createCard(request);
+        CardIssueResponse cardResponse = cardService.createCard(request);
 
         //ASSERT
         assertNotNull(cardResponse);
