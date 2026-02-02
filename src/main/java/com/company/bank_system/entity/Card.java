@@ -37,9 +37,6 @@ public class Card {
     private String cardHolderName; // john carter
 
     @Column(nullable = false)
-    private String cvvHash;
-
-    @Column(nullable = false)
     private LocalDate expiryDate;
     @Enumerated(EnumType.STRING)
     private CardType cardType; // DEBIT, CREDIT

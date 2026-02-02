@@ -1,5 +1,6 @@
 package com.company.bank_system.service;
 
+import com.company.bank_system.dto.CardIssueResponse;
 import com.company.bank_system.dto.CardResponse;
 import com.company.bank_system.dto.CreateCardRequest;
 import com.company.bank_system.entity.Account;
@@ -14,7 +15,6 @@ import com.company.bank_system.exception.Exceptions.CardNotFoundException;
 import com.company.bank_system.repo.CardRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -31,20 +31,18 @@ public class CardService {
     private final CardRepository cardRepository;
     private final AccountService accountService;
     private final CurrentUserService currentUserService;
-    private final PasswordEncoder passwordEncoder;
 
     public CardService(CardRepository cardRepository,
                        AccountService accountService,
-                       CurrentUserService currentUserService,
-                       PasswordEncoder passwordEncoder) {
+                       CurrentUserService currentUserService
+    ) {
         this.cardRepository = cardRepository;
         this.accountService = accountService;
         this.currentUserService = currentUserService;
-        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
-    public CardResponse createCard(CreateCardRequest request) {
+    public CardIssueResponse createCard(CreateCardRequest request) {
         User user = currentUserService.getCurrentUser();
         Account account = accountService.getAccountEntityById(request.accountId());
 
@@ -66,15 +64,17 @@ public class CardService {
         card.setUser(user);
         card.setCardNumber(generateCardNumber());
         card.setCardHolderName(user.getFirstName() + " " + user.getLastName());
-        card.setCvvHash(generateCvvHash());
+//        card.setCvvHash(generateCvvHash());
         card.setExpiryDate(LocalDate.now().plusYears(5));
         card.setCardType(request.cardType());
         card.setPaymentSystem(request.paymentSystem());
         card.setStatus(CardStatus.ACTIVE);
         card.setCreatedAt(LocalDateTime.now());
         card.setUpdatedAt(LocalDateTime.now());
+        String cvv = generateCvv();
 
         Card saved = cardRepository.save(card);
+
 
         log.info("CARD_CREATE_SUCCESS cardId={} userId={} cardNumber={}",
                 saved.getId(),
@@ -82,7 +82,18 @@ public class CardService {
                 maskCardNumber(saved.getCardNumber())
         );
 
-        return mapToResponse(saved);
+        return new CardIssueResponse(
+                card.getId(),
+                maskCardNumber(card.getCardNumber()),
+                card.getCardHolderName(),
+                card.getExpiryDate(),
+                card.getCardType(),
+                card.getPaymentSystem(),
+                card.getStatus(),
+                card.getAccount() != null ? card.getAccount().getId() : null,
+                cvv,
+                card.getCreatedAt()
+        );
     }
 
     public List<CardResponse> getMyCards() {
@@ -242,10 +253,8 @@ public class CardService {
         return cardNumber;
     }
 
-    private String generateCvvHash() {
-        return passwordEncoder.encode(
-                String.valueOf(ThreadLocalRandom.current().nextInt(100, 999))
-        );
+    private String generateCvv() {
+        return String.valueOf(ThreadLocalRandom.current().nextInt(100, 999));
     }
 
     public List<CardResponse> getCardsByAccount(Long accountId) {

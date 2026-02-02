@@ -1,5 +1,6 @@
 package com.company.bank_system.controller;
 
+import com.company.bank_system.dto.CardIssueResponse;
 import com.company.bank_system.dto.CardResponse;
 import com.company.bank_system.dto.CreateCardRequest;
 import com.company.bank_system.entity.enums.Cards.CardStatus;
@@ -25,7 +26,7 @@ public class CardController {
     }
 
     @PostMapping("/createCard")
-    public CardResponse createCard(
+    public CardIssueResponse createCard(
             @Valid @RequestBody CreateCardRequest request
     ) {
         return cardService.createCard(request);
