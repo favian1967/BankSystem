@@ -363,9 +363,9 @@ public class AccountService {
         String accountNumber;
 
         do {
-            String prefix = "40817";
+            String prefix = "99999999";
             long randomPart = ThreadLocalRandom.current()
-                    .nextLong(100000000000000L, 999999999999999L);
+                    .nextLong(10000000L, 99999999L);
             accountNumber = prefix + randomPart;
         } while (accountRepository.existsByAccountNumber(accountNumber));
 
