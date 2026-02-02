@@ -2,16 +2,17 @@ package com.company.bank_system.service;
 
 import com.company.bank_system.dto.LoginRequest;
 import com.company.bank_system.dto.RegisterRequest;
+import com.company.bank_system.entity.EmailConfirmation;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.entity.enums.User.UserStatus;
-import com.company.bank_system.exception.Exceptions.AccessDeniedException;
-import com.company.bank_system.exception.Exceptions.UserAlreadyExistsException;
-import com.company.bank_system.exception.Exceptions.UserNotFoundException;
+import com.company.bank_system.exception.Exceptions.*;
+import com.company.bank_system.repo.EmailConfirmedRepository;
 import com.company.bank_system.repo.RevokedTokenRepository;
 import com.company.bank_system.repo.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cglib.core.Local;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
@@ -29,10 +30,11 @@ public class AuthService {
     private final RevokedTokenRepository revokedTokenRepository;
     private final TokenRevocationService tokenRevocationService;
     private final EmailAsyncService emailAsyncService;
+    private final EmailConfirmedRepository emailConfirmedRepository;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
-                       JWTService jwtService, MailSenderService mailSenderService, CurrentUserService currentUserService, RevokedTokenRepository revokedTokenRepository, TokenRevocationService tokenRevocationService, EmailAsyncService emailAsyncService) {
+                       JWTService jwtService, MailSenderService mailSenderService, CurrentUserService currentUserService, RevokedTokenRepository revokedTokenRepository, TokenRevocationService tokenRevocationService, EmailAsyncService emailAsyncService, EmailConfirmedRepository emailConfirmedRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
@@ -41,6 +43,7 @@ public class AuthService {
         this.revokedTokenRepository = revokedTokenRepository;
         this.tokenRevocationService = tokenRevocationService;
         this.emailAsyncService = emailAsyncService;
+        this.emailConfirmedRepository = emailConfirmedRepository;
     }
 
     public void logout(String token) {
@@ -138,10 +141,19 @@ public class AuthService {
 
     public void sendEmailKey(){
         User currentUser = currentUserService.getCurrentUser();
-
         String mailKey = generateMailKey();
-        currentUser.setMailKey(mailKey);
-        userRepository.save(currentUser);
+
+        EmailConfirmation emailConfirmation = emailConfirmedRepository.findByUserId(currentUser.getId())
+                .orElseGet(EmailConfirmation::new);
+
+        emailConfirmation.setUser(currentUser);
+        emailConfirmation.setMailKeyHash(passwordEncoder.encode(mailKey));
+        emailConfirmation.setCreated_at(LocalDateTime.now());
+        emailConfirmation.setExpires_at(LocalDateTime.now().plusMinutes(15));
+        emailConfirmation.setUsed(false);
+        emailConfirmation.setAttempts(0);
+
+        emailConfirmedRepository.save(emailConfirmation);
 
         emailAsyncService.sendRegisterKeyEmail(currentUser.getEmail(), mailKey);
     }
@@ -149,13 +161,53 @@ public class AuthService {
     @Transactional
     public boolean isEmailKeyValid(String key){
         User currentUser = currentUserService.getCurrentUser();
-        String currentKey = currentUser.getMailKey();
-        if (currentKey == null || !currentKey.equals(key)) {
-            throw new UserNotFoundException("Incorrect key");
+        EmailConfirmation emailConfirmation = emailConfirmedRepository.findByUserId(currentUser.getId())
+                .orElseThrow(() -> {
+                    log.warn("EMAIL_CONFIRMATION_NOT_FOUND user_id={}", currentUser.getId());
+                    return new InvalidOperationException(currentUser.getEmail());
+                });
+
+        String mailKeyHash = emailConfirmation.getMailKeyHash();
+
+        if (emailConfirmation.isUsed()) {
+            log.warn("EMAIL_CONFIRMATION_FAILED_ALREADY_USED userId={}",
+                    currentUser.getId()
+            );
+            return false;
         }
+
+        if (emailConfirmation.getExpires_at().isBefore(LocalDateTime.now())) {
+            log.warn("EMAIL_CONFIRMATION_FAILED_EXPIRED userId={} expiresAt={}",
+                    currentUser.getId(),
+                    emailConfirmation.getExpires_at()
+            );
+            return false;
+        }
+
+        if (emailConfirmation.getAttempts() >= 5) {
+            log.warn("EMAIL_CONFIRMATION_FAILED_TOO_MANY_ATTEMPTS userId={} attempts={}",
+                    currentUser.getId(),
+                    emailConfirmation.getAttempts()
+            );
+            return false;
+        }
+
+        if (!passwordEncoder.matches(key,mailKeyHash)) {
+            emailConfirmation.setAttempts(emailConfirmation.getAttempts() + 1);
+            emailConfirmedRepository.save(emailConfirmation);
+            log.warn("EMAIL_CONFIRMATION_FAILED_BAD_CODE userId={} attempts={}",
+                    currentUser.getId(),
+                    emailConfirmation.getAttempts()
+            );
+            return false;
+        }
+
+        emailConfirmation.setUsed(true);
+        emailConfirmedRepository.save(emailConfirmation);
+
         currentUser.setConfirmed(true);
-        currentUser.setMailKey(null);
         userRepository.save(currentUser);
+
         return true;
     }
 
