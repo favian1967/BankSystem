@@ -88,6 +88,7 @@ docker compose up --build
 ## Использование
 
 - Приложение будет находится на: [http://localhost:8080](http://localhost:8080)
+- PostgreSQL пробрасывается на `localhost:5432` *(если порт свободен)*.
 - Так же можно перейти на html страницу для просмотра общей информации [http://localhost:8080](http://localhost:8080)
 - Так же учтите что в проекте стоит RateLimiterFilter с ограничениями 50 токенов в минуту
 
