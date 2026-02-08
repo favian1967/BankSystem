@@ -134,7 +134,10 @@ docker compose up --build
 
 | Topic | Назначение |
 |------|-------------|
-| `ai_messages` | Обмен запросами и ответами между BankSystem и AI сервисом |
+| `ai_messages` | Запросы от BankSystem к AI сервису |
+| `ai_answers` | Ответы AI сервиса обратно в BankSystem |
+
+### Поток сообщений (request–reply)
 
 AI-ассистент реализован как отдельный микросервис:
 
@@ -160,6 +163,7 @@ docker run -d \
   -e KAFKA_LOG_DIRS=/tmp/kraft-combined-logs \
   -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
   apache/kafka:latest
+```
 
 ## API Overview
 
