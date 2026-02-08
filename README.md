@@ -39,6 +39,8 @@
 * [![PostgreSQL][postgres-shield]][postgres-url]
 * [![JWT][jwt-shield]][jwt-url]
 * [![Docker][docker-shield]][docker-url]
+* ![Kafka](https://img.shields.io/badge/Kafka-Event%20Streaming-231F20?style=for-the-badge&logo=apachekafka)
+
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
