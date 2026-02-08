@@ -1,5 +1,14 @@
 
 spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+    properties:
+      allow.auto.create.topics: true
 
   mail:
     username: ${EMAIL_USERNAME}
@@ -34,6 +43,12 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+
+app:
+  kafka:
+    topic:
+      messages: ai_messages
+
 
 jwt:
   secret: ${JWT_SECRET}
