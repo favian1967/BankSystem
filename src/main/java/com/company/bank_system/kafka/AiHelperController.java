@@ -11,17 +11,22 @@ import org.springframework.web.bind.annotation.*;
 public class AiHelperController {
 
     private final AiHelperProducer aiHelperProducer;
+    private final AnswerStore answerStore;
 
-    public AiHelperController(AiHelperProducer aiHelperProducer) {
+    public AiHelperController(AiHelperProducer aiHelperProducer, AnswerStore answerStore) {
         this.aiHelperProducer = aiHelperProducer;
+        this.answerStore = answerStore;
     }
 
-    @GetMapping("/send")
-    public ResponseEntity<String> sendMessage(
+    @GetMapping("/ask")
+    public String sendMessage(
             @RequestParam String message
     ) {
         log.info("REST received: {}", message);
-        aiHelperProducer.sendMessage(message);
-        return ResponseEntity.ok("Сообщение успешно отправлено в Kafka");
+        return aiHelperProducer.sendMessage(message);
+    }
+    @GetMapping("/answer/{id}")
+    public String getAnswer(@PathVariable String id) {
+        return answerStore.getById(id);
     }
 }

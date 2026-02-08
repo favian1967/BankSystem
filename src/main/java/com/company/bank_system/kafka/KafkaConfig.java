@@ -10,11 +10,22 @@ import org.springframework.kafka.config.TopicBuilder;
 public class KafkaConfig {
 
     @Value("${app.kafka.topic.messages}")
-    private String topicName;
+    private String requestTopic;
+    @Value("${app.kafka.topic.answers}")
+    private String responseTopic;
+
 
     @Bean
     public NewTopic topic() {
-        return TopicBuilder.name(topicName)
+        return TopicBuilder.name(requestTopic)
+                .partitions(3)
+                .replicas(1) // 1 broker - 1 repl
+                .build();
+    }
+
+    @Bean
+    public NewTopic newTopic() {
+        return TopicBuilder.name(responseTopic)
                 .partitions(3)
                 .replicas(1) // 1 broker - 1 repl
                 .build();
