@@ -115,6 +115,52 @@ docker compose up --build
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+
+## Архитектура и Kafka интеграция
+
+**BankSystem** является частью event-driven архитектуры и взаимодействует с внешним AI-сервисом через **Apache Kafka**.
+
+Это позволяет разделить ответственность сервисов, обеспечить асинхронную обработку запросов и повысить отказоустойчивость системы.
+
+### Поток сообщений
+- User → BankSystem → Kafka → AI Assistant → Kafka → BankSystem
+
+1. BankSystem отправляет пользовательские запросы в Kafka  
+2. AI Assistant потребляет сообщения и выполняет обработку  
+3. Ответ возвращается обратно через Kafka  
+4. BankSystem получает результат и завершает операцию
+
+   ### Kafka топики
+
+| Topic | Назначение |
+|------|-------------|
+| `ai_messages` | Обмен запросами и ответами между BankSystem и AI сервисом |
+
+AI-ассистент реализован как отдельный микросервис:
+
+ **AI Assistant Project:**  
+`https://github.com/favian1967/Ai_Assistant`
+
+## Kafka локальный запуск
+
+Для взаимодействия между сервисами требуется локально запущенный Kafka брокер.
+
+Запуск single-node Kafka:
+
+```bash
+docker run -d \
+  --name main_bank_kafka \
+  -p 9092:9092 \
+  -e KAFKA_NODE_ID=1 \
+  -e KAFKA_PROCESS_ROLES=broker,controller \
+  -e KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://:9093 \
+  -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 \
+  -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+  -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@localhost:9093 \
+  -e KAFKA_LOG_DIRS=/tmp/kraft-combined-logs \
+  -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+  apache/kafka:latest
+
 ## API Overview
 
 ### Authentication
