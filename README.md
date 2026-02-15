@@ -2,37 +2,37 @@
 
 <!-- TABLE OF CONTENTS -->
 <details>
-  <summary>Оглавление</summary>
+  <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#about-the-project">О проекте</a>
+      <a href="#about-the-project">About the Project</a>
       <ul>
-        <li><a href="#built-with">Стек</a></li>
+        <li><a href="#built-with">Tech Stack</a></li>
       </ul>
     </li>
     <li>
-      <a href="#getting-started">Быстрый старт</a>
+      <a href="#getting-started">Getting Started</a>
       <ul>
-        <li><a href="#prerequisites">Требования</a></li>
-        <li><a href="#installation">Установка и запуск</a></li>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation and Launch</a></li>
       </ul>
     </li>
-    <li><a href="#usage">Использование</a></li>
-    <li><a href="#configuration">Конфигурация</a></li>
-    <li><a href="#testing">Тестирование</a></li>
-    <li><a href="#roadmap">Планы</a></li>
-    <li><a href="#contact">Контакты</a></li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#configuration">Configuration</a></li>
+    <li><a href="#testing">Testing</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#contact">Contact</a></li>
   </ol>
 </details>
 
 <!-- ABOUT THE PROJECT -->
-## О проекте
+## About the Project
 
-**BankSystem** — это Spring Boot приложение для банковского домена с JWT-аутентификацией, интеграцией с PostgreSQL, почтовым сервисом и простой фронтенд частью. Проект так же ориентирован на удобный локальный запуск и контейнеризацию.
+**BankSystem** is a Spring Boot application for the banking domain with JWT authentication, PostgreSQL integration, email service, and a simple frontend. The project is also designed for convenient local launch and containerization.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Стек
+### Tech Stack
 
 * [![Java][java-shield]][java-url]
 * [![Spring Boot][spring-boot-shield]][spring-boot-url]
@@ -44,41 +44,41 @@
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Особенности
+### Features
 
-- Idempotency для транзакций через заголовок `Idempotency-Key` + автоочистка старых записей
+- Idempotency for transactions via `Idempotency-Key` header + auto-cleanup of old records
 
 <!-- GETTING STARTED -->
-## Быстрый старт
+## Getting Started
 
-### Требования
+### Prerequisites
 
 - **Java 21**
-- **Docker** и **Docker Compose** (для контейнерного запуска)
-- **PostgreSQL** (если запускать без Docker)
+- **Docker** and **Docker Compose** (for containerized launch)
+- **PostgreSQL** (if running without Docker)
 
-### Установка и запуск
+### Installation and Launch
 
-1. Скопируйте пример окружения:
+1. Copy the environment example:
    ```bash
    cp .env.example .env
    ```
-2. Заполните переменные в `.env`.
-3. Выберите сценарий запуска.
+2. Fill in the variables in `.env`.
+3. Choose a launch scenario.
 
-#### Локально (без Docker)
+#### Locally (without Docker)
 
-1. Убедитесь, что PostgreSQL запущен.
-2. Укажите локальный URL базы данных, например:
+1. Ensure PostgreSQL is running.
+2. Specify the local database URL, for example:
    ```bash
    DB_URL=jdbc:postgresql://localhost:5432/bank_db
    ```
-3. Запустите приложение:
+3. Run the application:
    ```bash
    ./gradlew bootRun
    ```
 
-#### Через Docker Compose
+#### Via Docker Compose
 
 ```bash
 docker compose up --build
@@ -87,68 +87,68 @@ docker compose up --build
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- USAGE EXAMPLES -->
-## Использование
+## Usage
 
-- Приложение будет находится на: [http://localhost:8080](http://localhost:8080)
-- PostgreSQL пробрасывается на `localhost:5432` *(если порт свободен)*.
-- Так же можно перейти на html страницу для просмотра общей информации [http://localhost:8080](http://localhost:8080)
-- Так же учтите что в проекте стоит RateLimiterFilter с ограничениями 50 токенов в минуту
+- The application will be available at: [http://localhost:8080](http://localhost:8080)
+- PostgreSQL is exposed on `localhost:5432` *(if the port is free)*.
+- You can also navigate to the HTML page for general information at [http://localhost:8080](http://localhost:8080)
+- Also note that the project has RateLimiterFilter with a limit of 50 tokens per minute
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONFIGURATION -->
-## Конфигурация
+## Configuration
 
-- Приложение использует `.env` файл, который автоматически подхватывается через `spring.config.import: optional:file:.env[.properties]`.
-- CORS настроен для dev-сценария (когда frontend запускается отдельно) и включается через профиль `dev`
-- Проект использует Spring Profiles (`dev`, `test`, `prod`). Активный профиль задаётся через `SPRING_PROFILES_ACTIVE`.
+- The application uses a `.env` file, which is automatically picked up via `spring.config.import: optional:file:.env[.properties]`.
+- CORS is configured for dev scenario (when frontend runs separately) and is enabled via the `dev` profile
+- The project uses Spring Profiles (`dev`, `test`, `prod`). The active profile is set via `SPRING_PROFILES_ACTIVE`.
 
-| Переменная | Описание |
+| Variable | Description |
 | --- | --- |
-| `JWT_SECRET` | Секрет для подписи JWT токенов. |
-| `JWT_EXPIRATION` | Время жизни токена (мс). |
-| `DB_URL` | JDBC URL до PostgreSQL. |
-| `DB_USERNAME` / `DB_PASSWORD` | Логин/пароль БД. |
-| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Настройки контейнера Postgres. |
-| `EMAIL_USERNAME` / `EMAIL_PASSWORD` | Данные SMTP (пример — Gmail). |
-| `SPRING_PROFILES_ACTIVE` | Активный профиль Spring (`dev/test/prod`). |
+| `JWT_SECRET` | Secret for JWT token signing. |
+| `JWT_EXPIRATION` | Token lifetime (ms). |
+| `DB_URL` | JDBC URL to PostgreSQL. |
+| `DB_USERNAME` / `DB_PASSWORD` | Database login/password. |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | Postgres container settings. |
+| `EMAIL_USERNAME` / `EMAIL_PASSWORD` | SMTP credentials (example — Gmail). |
+| `SPRING_PROFILES_ACTIVE` | Active Spring profile (`dev/test/prod`). |
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
-## Архитектура и Kafka интеграция
+## Architecture and Kafka Integration
 
-**BankSystem** является частью event-driven архитектуры и взаимодействует с внешним AI-сервисом через **Apache Kafka**.
+**BankSystem** is part of an event-driven architecture and interacts with an external AI service via **Apache Kafka**.
 
-Это позволяет разделить ответственность сервисов, обеспечить асинхронную обработку запросов и повысить отказоустойчивость системы.
+This allows separating service responsibilities, ensuring asynchronous request processing, and increasing system fault tolerance.
 
-### Поток сообщений
+### Message Flow
 - User → BankSystem → Kafka → AI Assistant → Kafka → BankSystem
 
-1. BankSystem отправляет пользовательские запросы в Kafka  
-2. AI Assistant потребляет сообщения и выполняет обработку  
-3. Ответ возвращается обратно через Kafka  
-4. BankSystem получает результат и завершает операцию
+1. BankSystem sends user requests to Kafka  
+2. AI Assistant consumes messages and performs processing  
+3. Response is returned back via Kafka  
+4. BankSystem receives the result and completes the operation
 
-   ### Kafka топики
+   ### Kafka Topics
 
-| Topic | Назначение |
+| Topic | Purpose |
 |------|-------------|
-| `ai_messages` | Запросы от BankSystem к AI сервису |
-| `ai_answers` | Ответы AI сервиса обратно в BankSystem |
+| `ai_messages` | Requests from BankSystem to AI service |
+| `ai_answers` | AI service responses back to BankSystem |
 
-### Поток сообщений (request–reply)
+### Message Flow (request–reply)
 
-AI-ассистент реализован как отдельный микросервис:
+The AI assistant is implemented as a separate microservice:
 
  **AI Assistant Project:**  
 `https://github.com/favian1967/Ai_Assistant`
 
-## Kafka локальный запуск
+## Kafka Local Launch
 
-Для взаимодействия между сервисами требуется локально запущенный Kafka брокер.
+For interaction between services, a locally running Kafka broker is required.
 
-Запуск single-node Kafka:
+Single-node Kafka launch:
 
 ```bash
 docker run -d \
@@ -192,27 +192,27 @@ POST /api/transactions/deposit
 POST /api/transactions/withdraw  
 POST /api/transactions/transfer  
 
-> Проект содержит так же другие менее значимые эндпоинты с которыми можно ознакомится в Controllers
+> The project also contains other less significant endpoints that can be found in Controllers
 
 
 <!-- TESTING -->
-## Тестирование
+## Testing
 
 ```bash
 ./gradlew test
 ```
 
-Тесты используют Testcontainers, поэтому требуется установленный Docker.
+Tests use Testcontainers, so Docker installation is required.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ## CI
 
-В проекте настроен GitHub Actions CI: на каждом push/PR автоматически выполняется `./gradlew test` в профиле `test`.
+The project has GitHub Actions CI configured: on every push/PR, `./gradlew test` is automatically executed in the `test` profile.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## Database schema
+## Database Schema
 
 <p align="center">
   <img src="src/main/resources/static/DB_DIAGRAM.png" width="800">
@@ -221,9 +221,9 @@ POST /api/transactions/transfer
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- CONTACT -->
-## Контакты
+## Contact
 
-Автор проекта: tg - @Rafink, x - https://x.com/Favian4747
+Project Author: tg - @Rafink, x - https://x.com/Favian4747
 
 Project Link: [https://github.com/favian1967/BankSystem](https://github.com/favian1967/BankSystem)
 
