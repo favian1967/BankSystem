@@ -2,22 +2,26 @@ package com.company.bank_system.controller;
 
 import com.company.bank_system.dto.AccountResponse;
 import com.company.bank_system.dto.CreateAccountRequest;
-import com.company.bank_system.service.AccountService;
-import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.*;
-import java.util.List;
-
 import com.company.bank_system.dto.UpdateAccountStatusRequest;
 import com.company.bank_system.entity.enums.Account.AccountStatus;
 import com.company.bank_system.entity.enums.Account.AccountType;
 import com.company.bank_system.entity.enums.Currency;
+import com.company.bank_system.service.AccountService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
-// test
+
 @RestController
 @RequestMapping("/api/accounts")
+@Validated
 public class AccountController {
+
     private final AccountService accountService;
 
     public AccountController(AccountService accountService) {
@@ -25,115 +29,114 @@ public class AccountController {
     }
 
     @PostMapping("/add")
-    public AccountResponse createAccount(
+    public ResponseEntity<AccountResponse> createAccount(
             @Valid @RequestBody CreateAccountRequest createAccountRequest
     ) throws Exception {
-        return accountService.createAccount(createAccountRequest);
+        return ResponseEntity.ok(accountService.createAccount(createAccountRequest));
     }
 
     @GetMapping("/getAll")
-    public List<AccountResponse> getMyAccounts(){
-        return accountService.getMyAccounts();
+    public ResponseEntity<List<AccountResponse>> getMyAccounts() {
+        return ResponseEntity.ok(accountService.getMyAccounts());
     }
 
     @GetMapping("/getById/{id}")
-    public AccountResponse getAccountById(
-            @PathVariable("id") Long accountId
-    ){
-        return accountService.getAccountById(accountId);
+    public ResponseEntity<AccountResponse> getAccountById(
+            @PathVariable("id") @Positive(message = "Account ID must be positive") Long accountId
+    ) {
+        return ResponseEntity.ok(accountService.getAccountById(accountId));
     }
 
     @GetMapping("/getByNumber/{accountNumber}")
-    public AccountResponse getAccountByNumber(
+    public ResponseEntity<AccountResponse> getAccountByNumber(
             @PathVariable("accountNumber") String accountNumber
     ) {
-        return accountService.getAccountByAccountNumber(accountNumber);
+        return ResponseEntity.ok(accountService.getAccountByAccountNumber(accountNumber));
     }
 
     @GetMapping("/getByType/{type}")
-    public List<AccountResponse> getAccountsByType(
+    public ResponseEntity<List<AccountResponse>> getAccountsByType(
             @PathVariable("type") AccountType type
     ) {
-        return accountService.getAccountsByType(type);
+        return ResponseEntity.ok(accountService.getAccountsByType(type));
     }
 
     @GetMapping("/getByCurrency/{currency}")
-    public List<AccountResponse> getAccountsByCurrency(
+    public ResponseEntity<List<AccountResponse>> getAccountsByCurrency(
             @PathVariable("currency") Currency currency
     ) {
-        return accountService.getAccountsByCurrency(currency);
+        return ResponseEntity.ok(accountService.getAccountsByCurrency(currency));
     }
 
     @GetMapping("/getByStatus/{status}")
-    public List<AccountResponse> getAccountsByStatus(
+    public ResponseEntity<List<AccountResponse>> getAccountsByStatus(
             @PathVariable("status") AccountStatus status
     ) {
-        return accountService.getAccountsByStatus(status);
+        return ResponseEntity.ok(accountService.getAccountsByStatus(status));
     }
 
     @GetMapping("/{id}/balance")
-    public Map<String, BigDecimal> getAccountBalance(
-            @PathVariable("id") Long accountId
+    public ResponseEntity<Map<String, BigDecimal>> getAccountBalance(
+            @PathVariable("id") @Positive(message = "Account ID must be positive") Long accountId
     ) {
         BigDecimal balance = accountService.getAccountBalance(accountId);
-        return Map.of("balance", balance);
+        return ResponseEntity.ok(Map.of("balance", balance));
     }
 
     @GetMapping("/totalBalance/{currency}")
-    public Map<String, Object> getTotalBalanceByCurrency(
+    public ResponseEntity<Map<String, Object>> getTotalBalanceByCurrency(
             @PathVariable("currency") Currency currency
     ) {
         BigDecimal total = accountService.getTotalBalanceByCurrency(currency);
-        return Map.of("totalBalance", total, "currency", currency.name());
+        return ResponseEntity.ok(Map.of("totalBalance", total, "currency", currency.name()));
     }
 
     @PatchMapping("/{id}/status")
-    public AccountResponse updateAccountStatus(
-            @PathVariable("id") Long accountId,
+    public ResponseEntity<AccountResponse> updateAccountStatus(
+            @PathVariable("id") @Positive(message = "Account ID must be positive") Long accountId,
             @Valid @RequestBody UpdateAccountStatusRequest request
     ) {
-        return accountService.updateAccountStatus(accountId, request.status());
+        return ResponseEntity.ok(accountService.updateAccountStatus(accountId, request.status()));
     }
 
     @DeleteMapping("/{id}/close")
-    public Map<String, String> closeAccount(
-            @PathVariable("id") Long accountId
+    public ResponseEntity<Void> closeAccount(
+            @PathVariable("id") @Positive(message = "Account ID must be positive") Long accountId
     ) {
         accountService.closeAccount(accountId);
-        return Map.of("message", "Account closed successfully", "accountId", accountId.toString());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/active")
-    public List<AccountResponse> getActiveAccounts() {
-        return accountService.getAccountsByStatus(AccountStatus.ACTIVE);
+    public ResponseEntity<List<AccountResponse>> getActiveAccounts() {
+        return ResponseEntity.ok(accountService.getAccountsByStatus(AccountStatus.ACTIVE));
     }
 
     @PatchMapping("/{id}/block")
-    public AccountResponse blockAccount(
-            @PathVariable("id") Long accountId
+    public ResponseEntity<AccountResponse> blockAccount(
+            @PathVariable("id") @Positive(message = "Account ID must be positive") Long accountId
     ) {
-        return accountService.updateAccountStatus(accountId, AccountStatus.BLOCKED);
+        return ResponseEntity.ok(accountService.updateAccountStatus(accountId, AccountStatus.BLOCKED));
     }
 
     @PatchMapping("/{id}/unblock")
-    public AccountResponse unblockAccount(
-            @PathVariable("id") Long accountId
+    public ResponseEntity<AccountResponse> unblockAccount(
+            @PathVariable("id") @Positive(message = "Account ID must be positive") Long accountId
     ) {
-        return accountService.updateAccountStatus(accountId, AccountStatus.ACTIVE);
+        return ResponseEntity.ok(accountService.updateAccountStatus(accountId, AccountStatus.ACTIVE));
     }
 
     @GetMapping("/count")
-    public Map<String, Long> getAccountsCount() {
+    public ResponseEntity<Map<String, Long>> getAccountsCount() {
         long count = accountService.getAccountsCount();
-        return Map.of("count", count);
+        return ResponseEntity.ok(Map.of("count", count));
     }
 
     @GetMapping("/exists/{accountNumber}")
-    public Map<String, Boolean> checkAccountExists(
+    public ResponseEntity<Map<String, Boolean>> checkAccountExists(
             @PathVariable("accountNumber") String accountNumber
     ) {
         boolean exists = accountService.accountExists(accountNumber);
-        return Map.of("exists", exists);
+        return ResponseEntity.ok(Map.of("exists", exists));
     }
-
 }

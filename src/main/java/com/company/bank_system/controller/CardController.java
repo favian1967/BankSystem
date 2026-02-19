@@ -7,7 +7,10 @@ import com.company.bank_system.entity.enums.Cards.CardStatus;
 import com.company.bank_system.entity.enums.Cards.CardType;
 import com.company.bank_system.service.CardService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -16,8 +19,8 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/cards")
+@Validated
 public class CardController {
-
 
     private final CardService cardService;
 
@@ -26,112 +29,127 @@ public class CardController {
     }
 
     @PostMapping("/createCard")
-    public CardIssueResponse createCard(
+    public ResponseEntity<CardIssueResponse> createCard(
             @Valid @RequestBody CreateCardRequest request
     ) {
-        return cardService.createCard(request);
+        return ResponseEntity.ok(cardService.createCard(request));
     }
 
     @GetMapping("/getMyCards")
-    public List<CardResponse> getMyCards() {
-        return cardService.getMyCards();
+    public ResponseEntity<List<CardResponse>> getMyCards() {
+        return ResponseEntity.ok(cardService.getMyCards());
     }
 
     @GetMapping("/getCard/{id}")
-    public CardResponse getCardById(
-            @PathVariable Long id
+    public ResponseEntity<CardResponse> getCardById(
+            @PathVariable @Positive(message = "Card ID must be positive") Long id
     ) {
-        return cardService.getCardById(id);
+        return ResponseEntity.ok(cardService.getCardById(id));
     }
-    //    @PreAuthorize("@cardPermission.canBlock(#id, authentication)")
+
     @PostMapping("/block/{id}")
-    public CardResponse blockCard(
-            @PathVariable Long id
+    public ResponseEntity<CardResponse> blockCard(
+            @PathVariable @Positive(message = "Card ID must be positive") Long id
     ) {
-        return cardService.blockCard(id);
+        return ResponseEntity.ok(cardService.blockCard(id));
     }
 
     @PostMapping("/unblock/{id}")
-    public CardResponse unblockCard(
-            @PathVariable Long id
+    public ResponseEntity<CardResponse> unblockCard(
+            @PathVariable @Positive(message = "Card ID must be positive") Long id
     ) {
-        return cardService.unblockCard(id);
+        return ResponseEntity.ok(cardService.unblockCard(id));
     }
 
     @GetMapping("/balance/{id}")
-    public BigDecimal getCardBalance(@PathVariable Long id) {
-        return cardService.getCardBalance(id);
+    public ResponseEntity<BigDecimal> getCardBalance(
+            @PathVariable @Positive(message = "Card ID must be positive") Long id
+    ) {
+        return ResponseEntity.ok(cardService.getCardBalance(id));
     }
 
     @GetMapping("/getByAccount/{accountId}")
-    public List<CardResponse> getCardsByAccount(@PathVariable Long accountId) {
-        return cardService.getCardsByAccount(accountId);
+    public ResponseEntity<List<CardResponse>> getCardsByAccount(
+            @PathVariable @Positive(message = "Account ID must be positive") Long accountId
+    ) {
+        return ResponseEntity.ok(cardService.getCardsByAccount(accountId));
     }
 
     @GetMapping("/getByStatus/{status}")
-    public List<CardResponse> getCardsByStatus(@PathVariable CardStatus status) {
-        return cardService.getCardsByStatus(status);
+    public ResponseEntity<List<CardResponse>> getCardsByStatus(
+            @PathVariable CardStatus status
+    ) {
+        return ResponseEntity.ok(cardService.getCardsByStatus(status));
     }
 
     @GetMapping("/getByType/{type}")
-    public List<CardResponse> getCardsByType(@PathVariable CardType type) {
-        return cardService.getCardsByType(type);
+    public ResponseEntity<List<CardResponse>> getCardsByType(
+            @PathVariable CardType type
+    ) {
+        return ResponseEntity.ok(cardService.getCardsByType(type));
     }
 
-
     @GetMapping("/active")
-    public List<CardResponse> getActiveCards() {
-        return cardService.getActiveCards();
+    public ResponseEntity<List<CardResponse>> getActiveCards() {
+        return ResponseEntity.ok(cardService.getActiveCards());
     }
 
     @GetMapping("/blocked")
-    public List<CardResponse> getBlockedCards() {
-        return cardService.getBlockedCards();
+    public ResponseEntity<List<CardResponse>> getBlockedCards() {
+        return ResponseEntity.ok(cardService.getBlockedCards());
     }
 
     @GetMapping("/expired")
-    public List<CardResponse> getExpiredCards() {
-        return cardService.getExpiredCards();
+    public ResponseEntity<List<CardResponse>> getExpiredCards() {
+        return ResponseEntity.ok(cardService.getExpiredCards());
     }
 
     @GetMapping("/count")
-    public Map<String, Long> getCardsCount() {
+    public ResponseEntity<Map<String, Long>> getCardsCount() {
         long count = cardService.getCardsCount();
-        return Map.of("count", count);
+        return ResponseEntity.ok(Map.of("count", count));
     }
 
     @GetMapping("/countByStatus/{status}")
-    public Map<String, Long> getCardsCountByStatus(@PathVariable CardStatus status) {
+    public ResponseEntity<Map<String, Long>> getCardsCountByStatus(
+            @PathVariable CardStatus status
+    ) {
         long count = cardService.getCardsCountByStatus(status);
-        return Map.of("count", count, "status", (long) status.ordinal());
+        return ResponseEntity.ok(Map.of("count", count, "status", (long) status.ordinal()));
     }
 
     @DeleteMapping("/delete/{id}")
-    public Map<String, String> deleteCard(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteCard(
+            @PathVariable @Positive(message = "Card ID must be positive") Long id
+    ) {
         cardService.deleteCard(id);
-        return Map.of("message", "Card deleted successfully", "cardId", id.toString());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/checkExpiry/{id}")
-    public Map<String, Object> checkCardExpiry(@PathVariable Long id) {
-        return cardService.checkCardExpiry(id);
+    public ResponseEntity<Map<String, Object>> checkCardExpiry(
+            @PathVariable @Positive(message = "Card ID must be positive") Long id
+    ) {
+        return ResponseEntity.ok(cardService.checkCardExpiry(id));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/getByUserId/{userId}")
-    public List<CardResponse> adminGetCardsByUser(@PathVariable Long userId) {
-        return cardService.adminGetCardsByUserId(userId);
+    public ResponseEntity<List<CardResponse>> adminGetCardsByUser(
+            @PathVariable @Positive(message = "User ID must be positive") Long userId
+    ) {
+        return ResponseEntity.ok(cardService.adminGetCardsByUserId(userId));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/getAllCards")
-    public List<CardResponse> adminGetAllCards() {
-        return cardService.adminGetAllCards();
+    public ResponseEntity<List<CardResponse>> adminGetAllCards() {
+        return ResponseEntity.ok(cardService.adminGetAllCards());
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/admin/stats")
-    public Map<String, Object> adminGetCardStats() {
-        return cardService.adminGetCardStats();
+    public ResponseEntity<Map<String, Object>> adminGetCardStats() {
+        return ResponseEntity.ok(cardService.adminGetCardStats());
     }
 }

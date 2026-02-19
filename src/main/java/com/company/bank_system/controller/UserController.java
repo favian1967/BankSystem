@@ -1,15 +1,18 @@
 package com.company.bank_system.controller;
 
-
 import com.company.bank_system.dto.ChangePasswordRequest;
 import com.company.bank_system.dto.ChangePasswordResponse;
 import com.company.bank_system.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
+@Validated
 public class UserController {
+
     private final UserService userService;
 
     public UserController(UserService userService) {
@@ -17,11 +20,9 @@ public class UserController {
     }
 
     @PatchMapping("/changePassword")
-    public ChangePasswordResponse changePassword(
+    public ResponseEntity<ChangePasswordResponse> changePassword(
             @Valid @RequestBody ChangePasswordRequest request
     ) {
-        return userService.changePassword(request);
+        return ResponseEntity.ok(userService.changePassword(request));
     }
-
-
 }

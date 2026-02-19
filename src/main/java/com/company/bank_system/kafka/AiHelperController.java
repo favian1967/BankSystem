@@ -1,13 +1,14 @@
 package com.company.bank_system.kafka;
 
-
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/helper")
+@Validated
 public class AiHelperController {
 
     private final AiHelperProducer aiHelperProducer;
@@ -19,14 +20,15 @@ public class AiHelperController {
     }
 
     @GetMapping("/ask")
-    public String sendMessage(
+    public ResponseEntity<String> sendMessage(
             @RequestParam String message
     ) {
         log.info("REST received: {}", message);
-        return aiHelperProducer.sendMessage(message);
+        return ResponseEntity.ok(aiHelperProducer.sendMessage(message));
     }
+
     @GetMapping("/answer/{id}")
-    public String getAnswer(@PathVariable String id) {
-        return answerStore.getById(id);
+    public ResponseEntity<String> getAnswer(@PathVariable String id) {
+        return ResponseEntity.ok(answerStore.getById(id));
     }
 }

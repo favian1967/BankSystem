@@ -291,9 +291,7 @@ class CardControllerTest {
         // ACT & ASSERT
         mockMvc.perform(delete("/api/cards/delete/" + testCard.getId())
                         .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Card deleted successfully"))
-                .andExpect(jsonPath("$.cardId").value(testCard.getId().toString()));
+                .andExpect(status().isNoContent());
 
         assertThat(cardRepository.findById(testCard.getId())).isEmpty();
     }

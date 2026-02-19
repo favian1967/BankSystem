@@ -6,13 +6,19 @@ import com.company.bank_system.dto.TransferRequest;
 import com.company.bank_system.dto.WithdrawRequest;
 import com.company.bank_system.service.TransactionService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import org.springframework.data.domain.Page;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/transactions")
+@Validated
 public class TransactionController {
 
     private final TransactionService transactionService;
@@ -22,48 +28,43 @@ public class TransactionController {
     }
 
     @PostMapping("/deposit")
-    public TransactionResponse deposit(
+    public ResponseEntity<TransactionResponse> deposit(
             @Valid @RequestBody DepositRequest depositRequest,
             @RequestHeader("Idempotency-Key") String key
     ) {
-        TransactionResponse transaction = transactionService.deposit(depositRequest, key);
-        return transaction;
+        return ResponseEntity.ok(transactionService.deposit(depositRequest, key));
     }
+
     @PostMapping("/withdraw")
-    public TransactionResponse withdraw(
+    public ResponseEntity<TransactionResponse> withdraw(
             @Valid @RequestBody WithdrawRequest withdrawRequest,
             @RequestHeader("Idempotency-Key") String key
     ) {
-        TransactionResponse transaction = transactionService.withdraw(withdrawRequest, key);
-        return transaction;
+        return ResponseEntity.ok(transactionService.withdraw(withdrawRequest, key));
     }
 
     @PostMapping("/transfer")
-    public TransactionResponse transfer(
+    public ResponseEntity<TransactionResponse> transfer(
             @Valid @RequestBody TransferRequest transferRequest,
             @RequestHeader("Idempotency-Key") String key
-    ){
-        TransactionResponse transaction = transactionService.transfer(transferRequest, key);
-        return transaction;
+    ) {
+        return ResponseEntity.ok(transactionService.transfer(transferRequest, key));
     }
 
     @GetMapping("/account/{accountId}")
-    public Page<TransactionResponse> getTransactions(
-            @PathVariable Long accountId,
-            @RequestParam int page,
-            @RequestParam int size
+    public ResponseEntity<Page<TransactionResponse>> getTransactions(
+            @PathVariable @Positive(message = "Account ID must be positive") Long accountId,
+            @RequestParam @Min(0) int page,
+            @RequestParam @Min(1) @Max(100) int size
     ) {
-        return transactionService.getAccountTransactions(accountId, page, size);
+        return ResponseEntity.ok(transactionService.getAccountTransactions(accountId, page, size));
     }
-
 
     @GetMapping("/account/{accountId}/recent")
-    public List<TransactionResponse> getRecentTransactions(
-            @PathVariable Long accountId,
-            @RequestParam(defaultValue = "5") int limit
-
+    public ResponseEntity<List<TransactionResponse>> getRecentTransactions(
+            @PathVariable @Positive(message = "Account ID must be positive") Long accountId,
+            @RequestParam(defaultValue = "5") @Min(1) @Max(50) int limit
     ) {
-        return transactionService.getRecentTransactions(accountId, limit);
+        return ResponseEntity.ok(transactionService.getRecentTransactions(accountId, limit));
     }
-
 }

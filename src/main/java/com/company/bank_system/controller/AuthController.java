@@ -4,17 +4,18 @@ import com.company.bank_system.dto.ConfirmRequest;
 import com.company.bank_system.dto.LoginRequest;
 import com.company.bank_system.dto.RegisterRequest;
 import com.company.bank_system.service.AuthService;
-import com.company.bank_system.service.CurrentUserService;
-import com.company.bank_system.service.EmailAsyncService;
 import com.company.bank_system.service.MailSenderService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
+@Validated
 public class AuthController {
 
     private final AuthService authService;
@@ -26,35 +27,35 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public String register(@Valid @RequestBody RegisterRequest request) {
-        return authService.register(request);
+    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
-    public String login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request);
+    public ResponseEntity<String> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/logout")
-    public Map<String, String> logout(HttpServletRequest request) {
+    public ResponseEntity<Map<String, String>> logout(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
             authService.logout(token);
-            return Map.of("message", "Logged out successfully");
+            return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
         }
-        return Map.of("message", "Authentication Failed");
+        return ResponseEntity.ok(Map.of("message", "Authentication Failed"));
     }
 
     @PostMapping("/send")
-    public void send(
-    ){
+    public ResponseEntity<Void> send() {
         authService.sendEmailKey();
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/confirm")
-    public boolean confirm(@RequestBody ConfirmRequest request){
-        return authService.isEmailKeyValid(request.key());
+    public ResponseEntity<Boolean> confirm(@RequestBody ConfirmRequest request) {
+        return ResponseEntity.ok(authService.isEmailKeyValid(request.key()));
     }
 }

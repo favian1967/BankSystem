@@ -165,7 +165,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse error = new ErrorResponse(
                 LocalDateTime.now(),
-                HttpStatus.NOT_FOUND.value(),
+                HttpStatus.UNAUTHORIZED.value(),
                 "User Not Found",
                 ex.getMessage(),
                 request.getRequestURI()

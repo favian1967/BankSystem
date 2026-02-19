@@ -184,9 +184,7 @@ class AccountControllerTest {
         // ACT & ASSERT
         mockMvc.perform(delete("/api/accounts/" + account.getId() + "/close")
                         .header("Authorization", "Bearer " + jwtToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Account closed successfully"))
-                .andExpect(jsonPath("$.accountId").value(account.getId().toString()));
+                .andExpect(status().isNoContent());
 
         Account closedAccount = accountRepository.findById(account.getId()).orElseThrow();
         assertThat(closedAccount.getStatus()).isEqualTo(AccountStatus.CLOSED);
