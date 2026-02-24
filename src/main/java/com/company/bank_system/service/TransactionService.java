@@ -4,7 +4,6 @@ import com.company.bank_system.dto.*;
 import com.company.bank_system.entity.Account;
 import com.company.bank_system.entity.IdempotentEntity;
 import com.company.bank_system.entity.Transaction;
-import com.company.bank_system.entity.enums.Currency;
 import com.company.bank_system.entity.enums.Idempotent.IdempotentStatus;
 import com.company.bank_system.entity.enums.Transaction.TransactionStatus;
 import com.company.bank_system.entity.enums.Transaction.TransactionType;
@@ -23,7 +22,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -56,24 +54,6 @@ public class TransactionService {
                 depositRequest.amount()
         );
 
-        Account account = accountService.getAccountEntityById(depositRequest.accountId());
-
-        IdempotentEntity idem;
-
-        try{
-            idem = new IdempotentEntity();
-            idem.setAccount(accountRepository.findById(depositRequest.accountId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"))
-            );
-            idem.setIdempotencyKey(idemKey);
-            idem.setStatus(IdempotentStatus.IN_PROGRESS);
-            idem.setCreatedAt(LocalDateTime.now());
-            idempotentRepository.saveAndFlush(idem);
-
-        } catch (DataIntegrityViolationException e) {
-            throw new IdempotentException(e.getMessage());
-        }
-
         if (depositRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
             log.error("DEPOSIT_INVALID_AMOUNT accountId={} amount={}",
                     depositRequest.accountId(),
@@ -82,6 +62,21 @@ public class TransactionService {
             throw new InvalidAmountException("Deposit amount must be greater than 0");
         }
 
+        IdempotentEntity idem;
+        try {
+            idem = new IdempotentEntity();
+            idem.setAccount(accountRepository.findById(depositRequest.accountId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"))
+            );
+            idem.setIdempotencyKey(idemKey);
+            idem.setStatus(IdempotentStatus.IN_PROGRESS);
+            idem.setCreatedAt(LocalDateTime.now());
+            idempotentRepository.saveAndFlush(idem);
+        } catch (DataIntegrityViolationException e) {
+            throw new IdempotentException(e.getMessage());
+        }
+
+        Account account = accountService.getAnyAccountByIdForUpdate(depositRequest.accountId());
 
         BigDecimal newBalance = account.getBalance().add(depositRequest.amount());
         account.setBalance(newBalance);
@@ -120,11 +115,16 @@ public class TransactionService {
                 withdrawRequest.amount()
         );
 
-        Account account = accountService.getAccountEntityById(withdrawRequest.accountId());
+        if (withdrawRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            log.error("WITHDRAW_INVALID_AMOUNT accountId={} amount={}",
+                    withdrawRequest.accountId(),
+                    withdrawRequest.amount()
+            );
+            throw new InvalidAmountException("Withdrawal amount must be greater than 0");
+        }
 
         IdempotentEntity idem;
-
-        try{
+        try {
             idem = new IdempotentEntity();
             idem.setAccount(accountRepository.findById(withdrawRequest.accountId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"))
@@ -137,14 +137,7 @@ public class TransactionService {
             throw new IdempotentException(e.getMessage());
         }
 
-
-        if (withdrawRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            log.error("WITHDRAW_INVALID_AMOUNT accountId={} amount={}",
-                    withdrawRequest.accountId(),
-                    withdrawRequest.amount()
-            );
-            throw new InvalidAmountException("Withdrawal amount must be greater than 0");
-        }
+        Account account = accountService.getAnyAccountByIdForUpdate(withdrawRequest.accountId());
 
         if (account.getBalance().compareTo(withdrawRequest.amount()) < 0) {
             log.warn("WITHDRAW_INSUFFICIENT_FUNDS accountId={} requested={} available={}",
@@ -190,19 +183,27 @@ public class TransactionService {
     }
 
     @Transactional
-    public TransactionResponse transfer(TransferRequest transferRequest, String idemKey) /*throws CurrencyMismatchException*/ {
+    public TransactionResponse transfer(TransferRequest transferRequest, String idemKey) {
         log.info("TRANSFER_START fromAccountId={} toAccountNumber={} amount={}",
                 transferRequest.fromAccountId(),
                 maskAccountNumber(transferRequest.toAccountId()),
                 transferRequest.amount()
         );
 
-        Account fromAccount = accountService.getAnyAccountById(transferRequest.fromAccountId());
-        Account toAccount = accountService.getAccountByNumber(transferRequest.toAccountId());
+        if (transferRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
+            log.error("TRANSFER_INVALID_AMOUNT amount={}", transferRequest.amount());
+            throw new InvalidAmountException("Transfer amount must be greater than 0");
+        }
+
+        Account toAccountRef = accountService.getAccountByNumber(transferRequest.toAccountId());
+
+        if (transferRequest.fromAccountId().equals(toAccountRef.getId())) {
+            log.error("TRANSFER_SAME_ACCOUNT accountId={}", transferRequest.fromAccountId());
+            throw new InvalidAmountException("Cannot transfer to the same account");
+        }
 
         IdempotentEntity idem;
-
-        try{
+        try {
             idem = new IdempotentEntity();
             idem.setAccount(accountRepository.findById(transferRequest.fromAccountId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"))
@@ -214,15 +215,17 @@ public class TransactionService {
         } catch (DataIntegrityViolationException e) {
             throw new IdempotentException(e.getMessage());
         }
-        if (fromAccount.getId().equals(toAccount.getId())) {
-            log.error("TRANSFER_SAME_ACCOUNT accountId={}", fromAccount.getId());
-            throw new InvalidAmountException("Cannot transfer to the same account");
-        }
 
-        if (transferRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            log.error("TRANSFER_INVALID_AMOUNT amount={}", transferRequest.amount());
-            throw new InvalidAmountException("Transfer amount must be greater than 0");
-        }
+        Long firstId  = Math.min(transferRequest.fromAccountId(), toAccountRef.getId());
+        Long secondId = Math.max(transferRequest.fromAccountId(), toAccountRef.getId());
+
+        Account lockedFirst  = accountService.getAnyAccountByIdForUpdate(firstId);
+        Account lockedSecond = accountService.getAnyAccountByIdForUpdate(secondId);
+
+        Account fromAccount = lockedFirst.getId().equals(transferRequest.fromAccountId())
+                ? lockedFirst : lockedSecond;
+        Account toAccount   = lockedFirst.getId().equals(toAccountRef.getId())
+                ? lockedFirst : lockedSecond;
 
         if (fromAccount.getBalance().compareTo(transferRequest.amount()) < 0) {
             log.warn("TRANSFER_INSUFFICIENT_FUNDS accountId={} requested={} available={}",

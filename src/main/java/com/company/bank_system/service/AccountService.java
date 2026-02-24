@@ -138,7 +138,7 @@ public class AccountService {
 
         return account;
     }
-    //INTERNAL USE ONLY
+
     public Account getAnyAccountById(Long accountId) {
         log.debug("GET_ANY_ACCOUNT accountId={}", accountId);
 
@@ -151,7 +151,21 @@ public class AccountService {
                     );
                 });
     }
-    // INTERNAL USE ONLY (payments, transfers)
+
+    @Transactional
+    public Account getAnyAccountByIdForUpdate(Long accountId) {
+        log.debug("GET_ANY_ACCOUNT_FOR_UPDATE accountId={}", accountId);
+
+        return accountRepository.findByIdForUpdate(accountId)
+                .orElseThrow(() -> {
+                    log.warn("ACCOUNT_NOT_FOUND accountId={}", accountId);
+                    return new AccountNotFoundException(
+                            AccountNotFoundException.Type.ID,
+                            accountId.toString()
+                    );
+                });
+    }
+
     public Account getAccountByNumber(String accountNumber) {
         log.debug("GET_ACCOUNT_BY_NUMBER accountNumber={}", maskAccountNumber(accountNumber));
 
