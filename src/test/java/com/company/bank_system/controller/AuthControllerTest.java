@@ -25,6 +25,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 import tools.jackson.databind.ObjectMapper;
 
+import org.springframework.kafka.test.context.EmbeddedKafka;
+
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@EmbeddedKafka(partitions = 1, topics = {"ai_messages", "bank_ai_answers"})
 class AuthControllerTest {
 
     private final MockMvc mockMvc;

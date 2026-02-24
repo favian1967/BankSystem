@@ -32,6 +32,8 @@ import org.testcontainers.utility.DockerImageName;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 
+import org.springframework.kafka.test.context.EmbeddedKafka;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -45,6 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@EmbeddedKafka(partitions = 1, topics = {"ai_messages", "bank_ai_answers"})
 class TransactionControllerTest {
 
     private final MockMvc mockMvc;

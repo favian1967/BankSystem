@@ -93,9 +93,9 @@ public class TransactionServiceTest {
         // ARRANGE
         DepositRequest request = new DepositRequest(1L, new BigDecimal("500.00"), "Test deposit");
 
-        when(accountService.getAccountEntityById(1L)).thenReturn(fromAccount);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
         when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
+        when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
         when(accountRepository.save(any(Account.class))).thenReturn(fromAccount);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction t = invocation.getArgument(0);
@@ -124,9 +124,9 @@ public class TransactionServiceTest {
         // ARRANGE
         WithdrawRequest request = new WithdrawRequest(1L, new BigDecimal("300.00"), "Test withdrawal");
 
-        when(accountService.getAccountEntityById(1L)).thenReturn(fromAccount);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
         when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
+        when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
         when(accountRepository.save(any(Account.class))).thenReturn(fromAccount);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction t = invocation.getArgument(0);
@@ -151,9 +151,9 @@ public class TransactionServiceTest {
         // ARRANGE
         WithdrawRequest request = new WithdrawRequest(1L, new BigDecimal("2000.00"), "Too much");
 
-        when(accountService.getAccountEntityById(1L)).thenReturn(fromAccount);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
         when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
+        when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
 
         // ACT & ASSERT
         assertThrows(InsufficientFundsException.class,
@@ -168,11 +168,8 @@ public class TransactionServiceTest {
         // ARRANGE
         WithdrawRequest request = new WithdrawRequest(1L, BigDecimal.ZERO, "Zero");
 
-        when(accountService.getAccountEntityById(1L)).thenReturn(fromAccount);
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
-        when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
-
         // ACT & ASSERT
+        // Validation happens before any DB call, so no mocks needed
         assertThrows(InvalidAmountException.class,
                 () -> transactionService.withdraw(request, "idem-key-4"));
     }
@@ -186,10 +183,12 @@ public class TransactionServiceTest {
                 1L, "40817840987654321098", new BigDecimal("200.00"), "Transfer"
         );
 
-        when(accountService.getAnyAccountById(1L)).thenReturn(fromAccount);
         when(accountService.getAccountByNumber("40817840987654321098")).thenReturn(toAccount);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
         when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
+        // Locking: min(1,2)=1 first, then max(1,2)=2
+        when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
+        when(accountService.getAnyAccountByIdForUpdate(2L)).thenReturn(toAccount);
         when(accountRepository.save(any(Account.class))).thenAnswer(i -> i.getArgument(0));
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction t = invocation.getArgument(0);
@@ -222,10 +221,11 @@ public class TransactionServiceTest {
                 1L, "40817840987654321098", new BigDecimal("5000.00"), "Too much"
         );
 
-        when(accountService.getAnyAccountById(1L)).thenReturn(fromAccount);
         when(accountService.getAccountByNumber("40817840987654321098")).thenReturn(toAccount);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
         when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
+        when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
+        when(accountService.getAnyAccountByIdForUpdate(2L)).thenReturn(toAccount);
 
         // ACT & ASSERT
         assertThrows(InsufficientFundsException.class,
@@ -242,10 +242,8 @@ public class TransactionServiceTest {
                 1L, "40817840123456789012", new BigDecimal("100.00"), "Same"
         );
 
-        when(accountService.getAnyAccountById(1L)).thenReturn(fromAccount);
+        // same-account check runs before idempotency, so only getAccountByNumber is needed
         when(accountService.getAccountByNumber("40817840123456789012")).thenReturn(fromAccount);
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
-        when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
 
         // ACT & ASSERT
         assertThrows(InvalidAmountException.class,
@@ -261,10 +259,11 @@ public class TransactionServiceTest {
                 1L, "40817840987654321098", new BigDecimal("100.00"), "Mismatch"
         );
 
-        when(accountService.getAnyAccountById(1L)).thenReturn(fromAccount);
         when(accountService.getAccountByNumber("40817840987654321098")).thenReturn(toAccount);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
         when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
+        when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
+        when(accountService.getAnyAccountByIdForUpdate(2L)).thenReturn(toAccount);
 
         // ACT & ASSERT
         assertThrows(CurrencyMismatchException.class,
