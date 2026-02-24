@@ -30,8 +30,8 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false,  unique = true)
-    public String phone;
+    @Column(nullable = false, unique = true)
+    private String phone;
 
     @Column(nullable = false)
     private String passwordHash;

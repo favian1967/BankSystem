@@ -243,11 +243,26 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(AccountOperationException.class)
+    public ResponseEntity<ErrorResponse> handleAccountOperation(
+            AccountOperationException ex,
+            HttpServletRequest request) {
 
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.UNPROCESSABLE_ENTITY.value(),
+                "Account Operation Not Allowed",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
 
-
-
-
-
+        return new ResponseEntity<>(error, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
 
 }
+
+
+
+
+
+

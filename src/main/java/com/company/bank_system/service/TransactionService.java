@@ -4,9 +4,11 @@ import com.company.bank_system.dto.*;
 import com.company.bank_system.entity.Account;
 import com.company.bank_system.entity.IdempotentEntity;
 import com.company.bank_system.entity.Transaction;
+import com.company.bank_system.entity.enums.Account.AccountStatus;
 import com.company.bank_system.entity.enums.Idempotent.IdempotentStatus;
 import com.company.bank_system.entity.enums.Transaction.TransactionStatus;
 import com.company.bank_system.entity.enums.Transaction.TransactionType;
+import com.company.bank_system.exception.Exceptions.AccountOperationException;
 import com.company.bank_system.exception.Exceptions.CurrencyMismatchException;
 import com.company.bank_system.exception.Exceptions.IdempotentException;
 import com.company.bank_system.exception.Exceptions.InsufficientFundsException;
@@ -77,6 +79,7 @@ public class TransactionService {
         }
 
         Account account = accountService.getAnyAccountByIdForUpdate(depositRequest.accountId());
+        requireActiveAccount(account);
 
         BigDecimal newBalance = account.getBalance().add(depositRequest.amount());
         account.setBalance(newBalance);
@@ -138,6 +141,7 @@ public class TransactionService {
         }
 
         Account account = accountService.getAnyAccountByIdForUpdate(withdrawRequest.accountId());
+        requireActiveAccount(account);
 
         if (account.getBalance().compareTo(withdrawRequest.amount()) < 0) {
             log.warn("WITHDRAW_INSUFFICIENT_FUNDS accountId={} requested={} available={}",
@@ -227,6 +231,9 @@ public class TransactionService {
         Account toAccount   = lockedFirst.getId().equals(toAccountRef.getId())
                 ? lockedFirst : lockedSecond;
 
+        requireActiveAccount(fromAccount);
+        requireActiveAccount(toAccount);
+
         if (fromAccount.getBalance().compareTo(transferRequest.amount()) < 0) {
             log.warn("TRANSFER_INSUFFICIENT_FUNDS accountId={} requested={} available={}",
                     fromAccount.getId(),
@@ -315,6 +322,15 @@ public class TransactionService {
                 .map(this::mapToResponse)
                 .toList();
     }
+
+    private void requireActiveAccount(Account account) {
+        if (account.getStatus() != AccountStatus.ACTIVE) {
+            log.warn("ACCOUNT_NOT_ACTIVE accountId={} status={}",
+                    account.getId(), account.getStatus());
+            throw new AccountOperationException(account.getId(), account.getStatus());
+        }
+    }
+
     private TransactionResponse mapToResponse(Transaction transaction) {
         return new TransactionResponse(
                 transaction.getId(),
