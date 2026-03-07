@@ -21,6 +21,9 @@ ext {
     testcontainersVersion = '1.20.4'
 }
 dependencies {
+    // memory leak safe cache
+    implementation "com.github.ben-manes.caffeine:caffeine:3.1.8"
+
     //kafka
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
 

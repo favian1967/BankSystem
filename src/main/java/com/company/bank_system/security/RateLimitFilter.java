@@ -1,6 +1,8 @@
 package com.company.bank_system.security;
 
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
@@ -17,13 +19,18 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static org.apache.kafka.common.requests.DeleteAclsResponse.log;
 
 
 @Component
 @Slf4j
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+//    private final Map<String, Bucket> buckets = new ConcurrentHashMap<>();
+    private final Cache<String, Bucket> buckets = Caffeine.newBuilder()
+        .expireAfterAccess(Duration.ofMinutes(10))
+        .maximumSize(100_000)
+        .build();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -51,7 +58,13 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private Bucket resolveBucket(String ip) {
-        return buckets.computeIfAbsent(ip, k -> createNewBucket());
+        Bucket bucket = buckets.get(ip, k -> createNewBucket());
+
+        log.info("RATE_LIMIT_BUCKET_RESOLVE ip={} cacheSize={}",
+                ip,
+                buckets.estimatedSize());
+
+        return bucket;
     }
 
     private Bucket createNewBucket() {
