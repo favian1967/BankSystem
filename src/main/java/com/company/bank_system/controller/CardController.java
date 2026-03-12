@@ -28,19 +28,19 @@ public class CardController {
         this.cardService = cardService;
     }
 
-    @PostMapping("/createCard")
+    @PostMapping
     public ResponseEntity<CardIssueResponse> createCard(
             @Valid @RequestBody CreateCardRequest request
     ) {
         return ResponseEntity.ok(cardService.createCard(request));
     }
 
-    @GetMapping("/getMyCards")
+    @GetMapping
     public ResponseEntity<List<CardResponse>> getMyCards() {
         return ResponseEntity.ok(cardService.getMyCards());
     }
 
-    @GetMapping("/getCard/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<CardResponse> getCardById(
             @PathVariable @Positive(message = "Card ID must be positive") Long id
     ) {
@@ -68,21 +68,21 @@ public class CardController {
         return ResponseEntity.ok(cardService.getCardBalance(id));
     }
 
-    @GetMapping("/getByAccount/{accountId}")
+    @GetMapping("/account/{accountId}")
     public ResponseEntity<List<CardResponse>> getCardsByAccount(
             @PathVariable @Positive(message = "Account ID must be positive") Long accountId
     ) {
         return ResponseEntity.ok(cardService.getCardsByAccount(accountId));
     }
 
-    @GetMapping("/getByStatus/{status}")
+    @GetMapping("/status/{status}")
     public ResponseEntity<List<CardResponse>> getCardsByStatus(
             @PathVariable CardStatus status
     ) {
         return ResponseEntity.ok(cardService.getCardsByStatus(status));
     }
 
-    @GetMapping("/getByType/{type}")
+    @GetMapping("/type/{type}")
     public ResponseEntity<List<CardResponse>> getCardsByType(
             @PathVariable CardType type
     ) {
@@ -110,7 +110,7 @@ public class CardController {
         return ResponseEntity.ok(Map.of("count", count));
     }
 
-    @GetMapping("/countByStatus/{status}")
+    @GetMapping("/count/status/{status}")
     public ResponseEntity<Map<String, Long>> getCardsCountByStatus(
             @PathVariable CardStatus status
     ) {
@@ -118,7 +118,7 @@ public class CardController {
         return ResponseEntity.ok(Map.of("count", count, "status", (long) status.ordinal()));
     }
 
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCard(
             @PathVariable @Positive(message = "Card ID must be positive") Long id
     ) {
@@ -126,7 +126,7 @@ public class CardController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/checkExpiry/{id}")
+    @GetMapping("/{id}/expiry")
     public ResponseEntity<Map<String, Object>> checkCardExpiry(
             @PathVariable @Positive(message = "Card ID must be positive") Long id
     ) {
@@ -134,7 +134,7 @@ public class CardController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/admin/getByUserId/{userId}")
+    @GetMapping("/admin/users/{userId}")
     public ResponseEntity<List<CardResponse>> adminGetCardsByUser(
             @PathVariable @Positive(message = "User ID must be positive") Long userId
     ) {
@@ -142,7 +142,7 @@ public class CardController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/admin/getAllCards")
+    @GetMapping("/admin/all")
     public ResponseEntity<List<CardResponse>> adminGetAllCards() {
         return ResponseEntity.ok(cardService.adminGetAllCards());
     }
