@@ -171,7 +171,7 @@ class CardControllerTest {
         );
 
         // ACT & ASSERT
-        mockMvc.perform(post("/api/cards/createCard")
+        mockMvc.perform(post("/api/cards")
                         .header("Authorization", "Bearer " + userToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -198,7 +198,7 @@ class CardControllerTest {
         );
 
         // ACT & ASSERT
-        mockMvc.perform(post("/api/cards/createCard")
+        mockMvc.perform(post("/api/cards")
                         .header("Authorization", "Bearer " + userToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
@@ -264,7 +264,7 @@ class CardControllerTest {
     @Test
     void getCardById_shouldReturnCard() throws Exception {
         // ACT & ASSERT
-        mockMvc.perform(get("/api/cards/getCard/" + testCard.getId())
+        mockMvc.perform(get("/api/cards/" + testCard.getId())
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testCard.getId()))
@@ -275,7 +275,7 @@ class CardControllerTest {
     @Test
     void getCardById_shouldFailWhenAccessingOtherUsersCard() throws Exception {
         // ACT & ASSERT
-        mockMvc.perform(get("/api/cards/getCard/" + testCard.getId())
+        mockMvc.perform(get("/api/cards/" + testCard.getId())
                         .header("Authorization", "Bearer " + otherUserToken))
                 .andExpect(status().isForbidden());
     }
@@ -292,7 +292,7 @@ class CardControllerTest {
     @Test
     void deleteCard_shouldDeleteCardSuccessfully() throws Exception {
         // ACT & ASSERT
-        mockMvc.perform(delete("/api/cards/delete/" + testCard.getId())
+        mockMvc.perform(delete("/api/cards/" + testCard.getId())
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isNoContent());
 
@@ -302,7 +302,7 @@ class CardControllerTest {
     @Test
     void deleteCard_shouldFailWhenDeletingOtherUsersCard() throws Exception {
         // ACT & ASSERT
-        mockMvc.perform(delete("/api/cards/delete/" + testCard.getId())
+        mockMvc.perform(delete("/api/cards/" + testCard.getId())
                         .header("Authorization", "Bearer " + otherUserToken))
                 .andExpect(status().isForbidden());
 
@@ -312,7 +312,7 @@ class CardControllerTest {
     @Test
     void adminGetCardsByUserId_shouldReturnUserCards() throws Exception {
         // ACT & ASSERT
-        mockMvc.perform(get("/api/cards/admin/getByUserId/" + testUser.getId())
+        mockMvc.perform(get("/api/cards/admin/users/" + testUser.getId())
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
@@ -322,7 +322,7 @@ class CardControllerTest {
     @Test
     void adminGetCardsByUserId_shouldFailWhenNotAdmin() throws Exception {
         // ACT & ASSERT
-        mockMvc.perform(get("/api/cards/admin/getByUserId/" + otherUser.getId())
+        mockMvc.perform(get("/api/cards/admin/users/" + otherUser.getId())
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isForbidden());
     }
@@ -331,7 +331,7 @@ class CardControllerTest {
     @Test
     void adminGetAllCards_shouldFailWhenNotAdmin() throws Exception {
         // ACT & ASSERT
-        mockMvc.perform(get("/api/cards/admin/getAllCards")
+        mockMvc.perform(get("/api/cards/admin/all")
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isForbidden());
     }
@@ -340,7 +340,7 @@ class CardControllerTest {
     @Test
     void checkCardExpiry_shouldReturnExpiryInfo() throws Exception {
         // ACT & ASSERT
-        mockMvc.perform(get("/api/cards/checkExpiry/" + testCard.getId())
+        mockMvc.perform(get("/api/cards/" + testCard.getId() + "/expiry")
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.cardId").value(testCard.getId()))
@@ -349,3 +349,4 @@ class CardControllerTest {
                 .andExpect(jsonPath("$.daysUntilExpiry").isNumber());
     }
 }
+
