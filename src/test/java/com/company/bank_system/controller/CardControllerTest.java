@@ -211,7 +211,7 @@ class CardControllerTest {
     @Test
     void blockCard_shouldBlockCardSuccessfully() throws Exception {
         // ACT & ASSERT
-        mockMvc.perform(post("/api/cards/block/" + testCard.getId())
+        mockMvc.perform(patch("/api/cards/block/" + testCard.getId())
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testCard.getId()))
@@ -228,7 +228,7 @@ class CardControllerTest {
         cardRepository.save(testCard);
 
         // ACT & ASSERT
-        mockMvc.perform(post("/api/cards/block/" + testCard.getId())
+        mockMvc.perform(patch("/api/cards/block/" + testCard.getId())
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().is4xxClientError());
     }
@@ -236,7 +236,7 @@ class CardControllerTest {
     @Test
     void blockCard_shouldFailWhenBlockingOtherUsersCard() throws Exception {
         // ACT & ASSERT
-        mockMvc.perform(post("/api/cards/block/" + testCard.getId())
+        mockMvc.perform(patch("/api/cards/block/" + testCard.getId())
                         .header("Authorization", "Bearer " + otherUserToken))
                 .andExpect(status().isForbidden());
 
@@ -251,7 +251,7 @@ class CardControllerTest {
         cardRepository.save(testCard);
 
         // ACT & ASSERT
-        mockMvc.perform(post("/api/cards/unblock/" + testCard.getId())
+        mockMvc.perform(patch("/api/cards/unblock/" + testCard.getId())
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testCard.getId()))

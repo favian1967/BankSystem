@@ -47,14 +47,14 @@ public class CardController {
         return ResponseEntity.ok(cardService.getCardById(id));
     }
 
-    @PostMapping("/block/{id}")
+    @PatchMapping("/block/{id}")
     public ResponseEntity<CardResponse> blockCard(
             @PathVariable @Positive(message = "Card ID must be positive") Long id
     ) {
         return ResponseEntity.ok(cardService.blockCard(id));
     }
 
-    @PostMapping("/unblock/{id}")
+    @PatchMapping("/unblock/{id}")
     public ResponseEntity<CardResponse> unblockCard(
             @PathVariable @Positive(message = "Card ID must be positive") Long id
     ) {
