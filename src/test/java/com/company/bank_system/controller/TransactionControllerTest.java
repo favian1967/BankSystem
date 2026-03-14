@@ -175,12 +175,12 @@ class TransactionControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.transactionType").value("DEPOSIT"))
+                .andExpect(jsonPath("$.transaction_type").value("DEPOSIT"))
                 .andExpect(jsonPath("$.amount").value(500.00))
                 .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.toAccountId").value(testAccount.getId()))
-                .andExpect(jsonPath("$.fromAccountId").doesNotExist());
+                .andExpect(jsonPath("$.to_account_id").value(testAccount.getId()))
+                .andExpect(jsonPath("$.from_account_id").doesNotExist());
 
         Account updatedAccount = accountRepository.findById(testAccount.getId()).orElseThrow();
         assertThat(updatedAccount.getBalance()).isEqualByComparingTo(expectedBalance);
@@ -228,12 +228,12 @@ class TransactionControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.transactionType").value("WITHDRAW"))
+                .andExpect(jsonPath("$.transaction_type").value("WITHDRAW"))
                 .andExpect(jsonPath("$.amount").value(300.00))
                 .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.fromAccountId").value(testAccount.getId()))
-                .andExpect(jsonPath("$.toAccountId").doesNotExist());
+                .andExpect(jsonPath("$.from_account_id").value(testAccount.getId()))
+                .andExpect(jsonPath("$.to_account_id").doesNotExist());
 
         Account updatedAccount = accountRepository.findById(testAccount.getId()).orElseThrow();
         assertThat(updatedAccount.getBalance()).isEqualByComparingTo(expectedBalance);
@@ -299,12 +299,12 @@ class TransactionControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.transactionType").value("TRANSFER"))
+                .andExpect(jsonPath("$.transaction_type").value("TRANSFER"))
                 .andExpect(jsonPath("$.amount").value(200.00))
                 .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.fromAccountId").value(testAccount.getId()))
-                .andExpect(jsonPath("$.toAccountId").value(secondAccount.getId()));
+                .andExpect(jsonPath("$.from_account_id").value(testAccount.getId()))
+                .andExpect(jsonPath("$.to_account_id").value(secondAccount.getId()));
 
         Account updatedFromAccount = accountRepository.findById(testAccount.getId()).orElseThrow();
         Account updatedToAccount = accountRepository.findById(secondAccount.getId()).orElseThrow();

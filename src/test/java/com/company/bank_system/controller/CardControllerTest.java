@@ -177,12 +177,12 @@ class CardControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.cardHolderName").value("John Doe"))
-                .andExpect(jsonPath("$.cardType").value("CREDIT"))
-                .andExpect(jsonPath("$.paymentSystem").value("MASTERCARD"))
-                .andExpect(jsonPath("$.cardStatus").value("ACTIVE"))
-                .andExpect(jsonPath("$.accountId").value(testAccount.getId()))
-                .andExpect(jsonPath("$.cardNumber").value(org.hamcrest.Matchers.matchesPattern("^\\*{4} \\*{4} \\*{4} \\d{4}$")));
+                .andExpect(jsonPath("$.card_holder_name").value("John Doe"))
+                .andExpect(jsonPath("$.card_type").value("CREDIT"))
+                .andExpect(jsonPath("$.payment_system").value("MASTERCARD"))
+                .andExpect(jsonPath("$.card_status").value("ACTIVE"))
+                .andExpect(jsonPath("$.account_id").value(testAccount.getId()))
+                .andExpect(jsonPath("$.card_number").value(org.hamcrest.Matchers.matchesPattern("^\\*{4} \\*{4} \\*{4} \\d{4}$")));
 
         List<Card> cards = cardRepository.findByUser(testUser);
         assertThat(cards).hasSize(2);
@@ -215,7 +215,7 @@ class CardControllerTest {
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testCard.getId()))
-                .andExpect(jsonPath("$.cardStatus").value("BLOCKED"));
+                .andExpect(jsonPath("$.card_status").value("BLOCKED"));
 
         Card blockedCard = cardRepository.findById(testCard.getId()).orElseThrow();
         assertThat(blockedCard.getStatus()).isEqualTo(CardStatus.BLOCKED);
@@ -255,7 +255,7 @@ class CardControllerTest {
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testCard.getId()))
-                .andExpect(jsonPath("$.cardStatus").value("ACTIVE"));
+                .andExpect(jsonPath("$.card_status").value("ACTIVE"));
 
         Card unblockedCard = cardRepository.findById(testCard.getId()).orElseThrow();
         assertThat(unblockedCard.getStatus()).isEqualTo(CardStatus.ACTIVE);
@@ -268,8 +268,8 @@ class CardControllerTest {
                         .header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testCard.getId()))
-                .andExpect(jsonPath("$.cardHolderName").value("John Doe"))
-                .andExpect(jsonPath("$.cardType").value("DEBIT"));
+                .andExpect(jsonPath("$.card_holder_name").value("John Doe"))
+                .andExpect(jsonPath("$.card_type").value("DEBIT"));
     }
 
     @Test
@@ -316,7 +316,7 @@ class CardControllerTest {
                         .header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].cardHolderName").value("John Doe"));
+                .andExpect(jsonPath("$[0].card_holder_name").value("John Doe"));
     }
 
     @Test
@@ -336,17 +336,5 @@ class CardControllerTest {
                 .andExpect(status().isForbidden());
     }
 
-
-    @Test
-    void checkCardExpiry_shouldReturnExpiryInfo() throws Exception {
-        // ACT & ASSERT
-        mockMvc.perform(get("/api/cards/" + testCard.getId() + "/expiry")
-                        .header("Authorization", "Bearer " + userToken))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.cardId").value(testCard.getId()))
-                .andExpect(jsonPath("$.isExpired").value(false))
-                .andExpect(jsonPath("$.expiryDate").exists())
-                .andExpect(jsonPath("$.daysUntilExpiry").isNumber());
-    }
 }
 

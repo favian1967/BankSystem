@@ -118,8 +118,8 @@ class AccountControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber())
-                .andExpect(jsonPath("$.accountNumber").isString())
-                .andExpect(jsonPath("$.accountType").value("CHECKING"))
+                .andExpect(jsonPath("$.account_number").isString())
+                .andExpect(jsonPath("$.account_type").value("CHECKING"))
                 .andExpect(jsonPath("$.currency").value("USD"))
                 .andExpect(jsonPath("$.balance").value(0))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
