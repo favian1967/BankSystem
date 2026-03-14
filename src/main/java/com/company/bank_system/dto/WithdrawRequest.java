@@ -1,5 +1,6 @@
 package com.company.bank_system.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -7,6 +8,7 @@ import java.math.BigDecimal;
 public record WithdrawRequest(
         @NotNull(message = "id is required")
         @Positive(message = "id must be positive")
+        @JsonProperty("account_id")
         Long accountId,
         @NotNull(message = "amount is required")
         @DecimalMin(value = "0.01", message = "sum must be bigger than 0.01")

@@ -1,6 +1,7 @@
 package com.company.bank_system.dto;
 
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -16,6 +17,7 @@ public record RegisterRequest (
         String password,
         @NotBlank(message = "firstName is required")
         @Pattern(regexp = "^[A-Za-zА-Яа-яЁё\\-\\s]+$", message = "Only symbols:  A-Za-zА-Яа-яЁё")
+        @JsonProperty("first_name")
         String firstName,
         @NotBlank(message = "phone is required")
         @Pattern(regexp = "^\\+7\\d{10}$",
