@@ -31,7 +31,7 @@ public class AccountController {
     @PostMapping("/add")
     public ResponseEntity<AccountResponse> createAccount(
             @Valid @RequestBody CreateAccountRequest createAccountRequest
-    ) throws Exception {
+    ) {
         return ResponseEntity.ok(accountService.createAccount(createAccountRequest));
     }
 

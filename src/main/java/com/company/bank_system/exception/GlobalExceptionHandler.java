@@ -56,6 +56,23 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(409).body(error);
     }
 
+    @ExceptionHandler(UserNotConfirmedException.class)
+    ResponseEntity<ErrorResponse> handleNotConfirmed(
+            UserNotConfirmedException ex,
+            HttpServletRequest request
+    ) {
+
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                403,
+                "User Not Confirmed Error",
+                "User not confirmed (email)",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(403).body(error);
+    }
+
     @ExceptionHandler({
             RuntimeException.class,
             Exception.class

@@ -5,7 +5,4 @@ public class UserAlreadyExistsException extends BankException {
         super(message);
     }
 
-    public UserAlreadyExistsException() {
-        super("a user with such data already exists");
-    }
 }

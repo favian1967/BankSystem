@@ -10,6 +10,7 @@ import com.company.bank_system.entity.enums.Currency;
 import com.company.bank_system.exception.Exceptions.AccessDeniedException;
 import com.company.bank_system.exception.Exceptions.AccountNotFoundException;
 import com.company.bank_system.exception.Exceptions.InvalidOperationException;
+import com.company.bank_system.exception.Exceptions.UserNotConfirmedException;
 import com.company.bank_system.repo.AccountRepository;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,11 +34,11 @@ public class AccountService {
         this.currentUserService = currentUserService;
     }
 
-    public AccountResponse createAccount(CreateAccountRequest request) throws Exception {
+    public AccountResponse createAccount(CreateAccountRequest request)  {
         User currentUser = currentUserService.getCurrentUser();
 
         if (!currentUser.isConfirmed()) {
-            throw new Exception("User is not confirmed");
+            throw new UserNotConfirmedException("User is not confirmed");
         }
 
         log.info("ACCOUNT_CREATE_START userId={} type={} currency={}",
