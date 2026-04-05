@@ -220,6 +220,31 @@ The project has GitHub Actions CI configured: on every push/PR, `./gradlew test`
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
+## Load Testing (k6)
+
+Basic load testing was performed using k6 to evaluate API performance under concurrent load.
+
+### Scenario
+- Endpoint: `/api/accounts/getAll`
+- Auth via JWT (token reused)
+- Each user: request → `sleep(1)`
+
+### Results
+
+- **≤ 60 users (~60 RPS)** → stable, fast response (~10–30ms)
+- **≥ 70 users** → noticeable latency growth
+- **100+ users** → significant delays (seconds)
+
+### Conclusion
+
+The system handles ~60 requests/sec per instance comfortably.  
+Beyond this point, performance degrades due to resource saturation (DB / connection pool / threads).
+
+### Run test
+
+```bash
+k6 run test.js
+
 <!-- CONTACT -->
 ## Contact
 
