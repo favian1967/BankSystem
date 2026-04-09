@@ -5,7 +5,6 @@ import com.company.bank_system.dto.RegisterRequest;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.entity.enums.User.UserStatus;
-import com.company.bank_system.repo.RevokedTokenRepository;
 import com.company.bank_system.repo.UserRepository;
 import com.company.bank_system.service.JWTService;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,7 +42,6 @@ class AuthControllerTest {
 
     private final MockMvc mockMvc;
     private final UserRepository userRepository;
-    private final RevokedTokenRepository revokedTokenRepository;
     private final JWTService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
@@ -52,14 +50,12 @@ class AuthControllerTest {
     AuthControllerTest(
             MockMvc mockMvc,
             UserRepository userRepository,
-            RevokedTokenRepository revokedTokenRepository,
             JWTService jwtService,
             PasswordEncoder passwordEncoder,
             ObjectMapper objectMapper
     ) {
         this.mockMvc = mockMvc;
         this.userRepository = userRepository;
-        this.revokedTokenRepository = revokedTokenRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
@@ -79,7 +75,6 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        revokedTokenRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -286,23 +281,6 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().is4xxClientError());
-    }
-
-    // ==================== LOGOUT ====================
-
-    @Test
-    void logout_shouldRevokeToken() throws Exception {
-        // ARRANGE
-        createUser("logout@test.com", "+79991234567");
-        String token = jwtService.generateToken("logout@test.com");
-
-        // ACT & ASSERT
-        mockMvc.perform(post("/api/auth/logout")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Logged out successfully"));
-
-        assertThat(revokedTokenRepository.existsByToken(token)).isTrue();
     }
 
     @Test

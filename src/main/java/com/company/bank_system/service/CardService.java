@@ -15,6 +15,7 @@ import com.company.bank_system.exception.Exceptions.CardNotFoundException;
 import com.company.bank_system.repo.CardRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -96,6 +97,7 @@ public class CardService {
         );
     }
 
+    @Cacheable(value = "cards", key = "@currentUserService.getCurrentUser().id")
     public List<CardResponse> getMyCards() {
         User user = currentUserService.getCurrentUser();
 

@@ -1,5 +1,11 @@
-
 spring:
+  data:
+    redis:
+      host: redis
+      port: 6379
+  cache:
+    type: redis
+
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:29092}
     producer:
@@ -34,6 +40,12 @@ spring:
           auth: true
           starttls:
             enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+          ssl:
+            protocols: TLSv1.2
 
   config:
     import: optional:file:.env[.properties]

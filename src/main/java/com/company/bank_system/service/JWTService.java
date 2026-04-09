@@ -39,6 +39,22 @@ public class JWTService {
         return token;
     }
 
+    public String generateToken(String email, String role) {
+        log.debug("JWT_GENERATE_START email={} role={}", email, role);
+
+        String token = Jwts.builder()
+                .subject(email)
+                .claim("role", role)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(key)
+                .compact();
+
+        log.debug("JWT_GENERATE_SUCCES email={} role={}", email, role);
+
+        return token;
+    }
+
     public String extractEmail(String token) {
         log.debug("JWT_EXTRACT_EMAIL_START");
 
@@ -54,16 +70,35 @@ public class JWTService {
         return email;
     }
 
+    public String extractRole(String token) {
+        log.debug("JWT_EXTRACT_ROLE_START");
+
+        String role = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .get("role", String.class);
+
+        log.debug("JWT_EXTRACT_ROLE_SUCCESS email={}", role);
+
+        return role;
+    }
+
     public boolean isValid(String token) {
         log.debug("JWT_VALIDATE_START");
 
         try {
             Jwts.parser().verifyWith(key).build().parseClaimsJws(token);
             log.debug("JWT_VALIDATE_SUCCESS");
+            System.out.println("TOKEN VALID--------------");
             return true;
         } catch (Exception e) {
             log.warn("JWT_VALIDATE_FAILED reason={}", e.getMessage());
+            System.out.println("TOKEN INVALID------------");
             return false;
         }
     }
+
+
 }

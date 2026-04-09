@@ -110,14 +110,14 @@ class CardControllerTest {
         testUser = createUser("test@example.com", "John", "Doe", "+79505551234", UserRole.USER);
         testAccount = createAccount(testUser, "40817840123456789012", new BigDecimal("1000.00"));
         testCard = createCard(testAccount, testUser, CardType.DEBIT, CardPaymentSystem.VISA);
-        userToken = jwtService.generateToken(testUser.getEmail());
+        userToken = jwtService.generateToken(testUser.getEmail(), testUser.getRole().name());
 
         otherUser = createUser("other@example.com", "Jane", "Smith", "+79505551235", UserRole.USER);
         otherAccount = createAccount(otherUser, "40817840987654321098", new BigDecimal("500.00"));
-        otherUserToken = jwtService.generateToken(otherUser.getEmail());
+        otherUserToken = jwtService.generateToken(otherUser.getEmail(), otherUser.getRole().name());
 
         adminUser = createUser("admin@example.com", "Admin", "User", "+79505551236", UserRole.ADMIN);
-        adminToken = jwtService.generateToken(adminUser.getEmail());
+        adminToken = jwtService.generateToken(adminUser.getEmail(), adminUser.getRole().name());
     }
 
     private User createUser(String email, String firstName, String lastName, String phone, UserRole role) {

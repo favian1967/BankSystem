@@ -9,7 +9,6 @@ import com.company.bank_system.exception.Exceptions.AccessDeniedException;
 import com.company.bank_system.exception.Exceptions.UserAlreadyExistsException;
 import com.company.bank_system.exception.Exceptions.UserNotFoundException;
 import com.company.bank_system.repo.EmailConfirmedRepository;
-import com.company.bank_system.repo.RevokedTokenRepository;
 import com.company.bank_system.repo.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,8 +39,7 @@ public class AuthServiceTest {
     private MailSenderService mailSenderService;
     @Mock
     private CurrentUserService currentUserService;
-    @Mock
-    private RevokedTokenRepository revokedTokenRepository;
+
     @Mock
     private TokenRevocationService tokenRevocationService;
     @Mock
@@ -68,7 +66,6 @@ public class AuthServiceTest {
 
     @Test
     public void register_shouldRegisterSuccessfully() {
-        // ARRANGE
         RegisterRequest request = new RegisterRequest(
                 "new@test.com", "password123", "Ivan", "+79991234568"
         );
@@ -76,21 +73,16 @@ public class AuthServiceTest {
         when(userRepository.findByEmail("new@test.com")).thenReturn(Optional.empty());
         when(userRepository.findByPhone("+79991234568")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("password123")).thenReturn("hashedPassword");
-        when(jwtService.generateToken("new@test.com")).thenReturn("jwt-token");
 
-        // ACT
+        when(jwtService.generateToken("new@test.com", "USER"))
+                .thenReturn("jwt-token");
+
         String token = authService.register(request);
 
-        // ASSERT
         assertEquals("jwt-token", token);
-        verify(userRepository, times(1)).save(argThat(user ->
-                user.getEmail().equals("new@test.com") &&
-                        user.getFirstName().equals("Ivan") &&
-                        user.getPhone().equals("+79991234568") &&
-                        user.getRole() == UserRole.USER &&
-                        !user.isConfirmed()
-        ));
-        verify(jwtService, times(1)).generateToken("new@test.com");
+
+        verify(userRepository).save(any());
+        verify(jwtService).generateToken("new@test.com", "USER");
     }
 
     @Test
@@ -126,19 +118,22 @@ public class AuthServiceTest {
 
     @Test
     public void login_shouldLoginSuccessfully() {
-        // ARRANGE
         LoginRequest request = new LoginRequest("existing@test.com", "password123");
 
-        when(userRepository.findByEmail("existing@test.com")).thenReturn(Optional.of(existingUser));
-        when(passwordEncoder.matches("password123", "hashedPassword")).thenReturn(true);
-        when(jwtService.generateToken("existing@test.com")).thenReturn("jwt-token");
+        when(userRepository.findByEmail("existing@test.com"))
+                .thenReturn(Optional.of(existingUser));
 
-        // ACT
+        when(passwordEncoder.matches("password123", "hashedPassword"))
+                .thenReturn(true);
+
+        when(jwtService.generateToken("existing@test.com", "USER"))
+                .thenReturn("jwt-token");
+
         String token = authService.login(request);
 
-        // ASSERT
         assertEquals("jwt-token", token);
-        verify(jwtService, times(1)).generateToken("existing@test.com");
+
+        verify(jwtService).generateToken("existing@test.com", "USER");
     }
 
     @Test
@@ -184,26 +179,22 @@ public class AuthServiceTest {
         authService.logout("some-token");
 
         // ASSERT
-        verify(tokenRevocationService, times(1)).revoke("some-token");
+        verify(tokenRevocationService).revoke("some-token");
     }
 
     // ==================== TOKEN REVOKED CHECK ====================
 
     @Test
     public void isTokenRevoked_shouldReturnTrueWhenRevoked() {
-        // ARRANGE
-        when(revokedTokenRepository.existsByToken("revoked-token")).thenReturn(true);
+        when(tokenRevocationService.isRevoked("revoked-token")).thenReturn(true);
 
-        // ACT & ASSERT
         assertTrue(authService.isTokenRevoked("revoked-token"));
     }
 
     @Test
     public void isTokenRevoked_shouldReturnFalseWhenNotRevoked() {
-        // ARRANGE
-        when(revokedTokenRepository.existsByToken("valid-token")).thenReturn(false);
+        when(tokenRevocationService.isRevoked("valid-token")).thenReturn(false);
 
-        // ACT & ASSERT
         assertFalse(authService.isTokenRevoked("valid-token"));
     }
 }

@@ -14,6 +14,7 @@ import com.company.bank_system.repo.IdempotentRepository;
 import com.company.bank_system.repo.TransactionRepository;
 import com.company.bank_system.repo.UserRepository;
 import com.company.bank_system.service.JWTService;
+import com.company.bank_system.service.TokenRevocationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -38,6 +40,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -49,7 +53,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @EmbeddedKafka(partitions = 1, topics = {"ai_messages", "bank_ai_answers"})
 class TransactionControllerTest {
-
+    @MockitoBean
+    private TokenRevocationService tokenRevocationService;
     private final MockMvc mockMvc;
     private final AccountRepository accountRepository;
     private final UserRepository userRepository;
@@ -100,11 +105,8 @@ class TransactionControllerTest {
 
     @BeforeEach
     void setUp() {
+        when(tokenRevocationService.isRevoked(anyString())).thenReturn(false);
         idempotentRepository.deleteAll();
-        transactionRepository.deleteAll();
-        accountRepository.deleteAll();
-        userRepository.deleteAll();
-
         transactionRepository.deleteAll();
         accountRepository.deleteAll();
         userRepository.deleteAll();
@@ -153,7 +155,7 @@ class TransactionControllerTest {
         secondAccount.setCreatedAt(LocalDateTime.now());
         secondAccount = accountRepository.save(secondAccount);
 
-        jwtToken = jwtService.generateToken(testUser.getEmail());
+        jwtToken = jwtService.generateToken(testUser.getEmail(), testUser.getRole().name());
     }
 
     @Test

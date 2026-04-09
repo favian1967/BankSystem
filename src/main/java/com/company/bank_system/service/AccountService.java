@@ -14,6 +14,7 @@ import com.company.bank_system.exception.Exceptions.UserNotConfirmedException;
 import com.company.bank_system.repo.AccountRepository;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,7 +67,7 @@ public class AccountService {
 
         return mapToResponse(saved);
     }
-
+    @Cacheable(value = "accounts", key = "authentication.name")
     public List<AccountResponse> getMyAccounts() {
         User currentUser = currentUserService.getCurrentUser();
 
