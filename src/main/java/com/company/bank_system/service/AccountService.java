@@ -36,7 +36,7 @@ public class AccountService {
         this.currentUserService = currentUserService;
     }
 
-    @CacheEvict(value = "accounts", key = "authentication.name")
+    @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
     public AccountResponse createAccount(CreateAccountRequest request)  {
         User currentUser = currentUserService.getCurrentUser();
 
@@ -69,7 +69,7 @@ public class AccountService {
 
         return mapToResponse(saved);
     }
-    @Cacheable(value = "accounts", key = "authentication.name")
+    @Cacheable(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
     public List<AccountResponse> getMyAccounts() {
         User currentUser = currentUserService.getCurrentUser();
 
@@ -90,26 +90,7 @@ public class AccountService {
     public AccountResponse getAccountById(Long accountId) {
         User currentUser = currentUserService.getCurrentUser();
 
-        log.debug("GET_ACCOUNT_BY_ID_START userId={} accountId={}",
-                currentUser.getId(), accountId
-        );
-
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> {
-                    log.warn("ACCOUNT_NOT_FOUND accountId={}", accountId);
-                    return new AccountNotFoundException(
-                            AccountNotFoundException.Type.ID,
-                            accountId.toString()
-                    );
-                });
-
-        if (!account.getUser().getId().equals(currentUser.getId())) {
-            log.error("ACCESS_DENIED userId={} accountId={}",
-                    currentUser.getId(), accountId
-            );
-            throw new AccessDeniedException("Access denied to account " + accountId);
-        }
-
+        Account account = findWithOwnershipCheck(accountId, currentUser);
         log.info("GET_ACCOUNT_BY_ID_SUCCESS userId={} accountId={}",
                 currentUser.getId(), accountId
         );
@@ -118,29 +99,7 @@ public class AccountService {
     }
 
     public Account getAccountEntityById(Long accountId) {
-        User currentUser = currentUserService.getCurrentUser();
-
-        log.debug("GET_ACCOUNT_ENTITY userId={} accountId={}",
-                currentUser.getId(), accountId
-        );
-
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(() -> {
-                    log.warn("ACCOUNT_NOT_FOUND accountId={}", accountId);
-                    return new AccountNotFoundException(
-                            AccountNotFoundException.Type.ID,
-                            accountId.toString()
-                    );
-                });
-
-        if (!account.getUser().getId().equals(currentUser.getId())) {
-            log.error("ACCESS_DENIED userId={} accountId={}",
-                    currentUser.getId(), accountId
-            );
-            throw new AccessDeniedException("Access denied to account " + accountId);
-        }
-
-        return account;
+        return findWithOwnershipCheck(accountId, currentUserService.getCurrentUser());
     }
 
     public Account getAnyAccountById(Long accountId) {
@@ -187,10 +146,6 @@ public class AccountService {
 
     public AccountResponse getAccountByAccountNumber(String accountNumber) {
         User currentUser = currentUserService.getCurrentUser();
-
-        log.debug("GET_ACCOUNT_BY_NUMBER userId={} accountNumber={}",
-                currentUser.getId(), maskAccountNumber(accountNumber)
-        );
 
         Account account = accountRepository.findByAccountNumber(accountNumber)
                 .orElseThrow(() -> {
@@ -299,7 +254,7 @@ public class AccountService {
     }
 
     @Transactional
-    @CacheEvict(value = "accounts", key = "authentication.name")
+    @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
     public AccountResponse updateAccountStatus(Long accountId, AccountStatus newStatus) {
         User currentUser = currentUserService.getCurrentUser();
 
@@ -327,7 +282,7 @@ public class AccountService {
     }
 
     @Transactional
-    @CacheEvict(value = "accounts", key = "authentication.name")
+    @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
     public void closeAccount(Long accountId) {
         User currentUser = currentUserService.getCurrentUser();
 
@@ -379,6 +334,25 @@ public class AccountService {
         return exists;
     }
 
+    private Account findWithOwnershipCheck(Long accountId, User currentUser) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> {
+                    log.warn("ACCOUNT_NOT_FOUND accountId={}", accountId);
+                    return new AccountNotFoundException(
+                            AccountNotFoundException.Type.ID,
+                            accountId.toString()
+                    );
+                });
+
+        if (!account.getUser().getId().equals(currentUser.getId())) {
+            log.error("ACCESS_DENIED userId={} accountId={}",
+                    currentUser.getId(), accountId);
+            throw new AccessDeniedException("Access denied to account " + accountId);
+        }
+
+        return account;
+    }
+
     private String generateAccountNumber() {
         String accountNumber;
 
@@ -409,4 +383,11 @@ public class AccountService {
         if (number.length() < 6) return "****";
         return number.substring(0, 4) + "****" + number.substring(number.length() - 2);
     }
+
+    //only for cache #root.target.getCurrentUserCacheKey()
+    @SuppressWarnings("unused")
+    public String getCurrentUserCacheKey() {
+        return currentUserService.getCurrentEmail();
+    }
+
 }
