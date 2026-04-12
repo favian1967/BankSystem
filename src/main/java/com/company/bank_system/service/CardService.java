@@ -45,7 +45,7 @@ public class CardService {
     }
 
     @Transactional
-    @CacheEvict(value = "cards", key = "@currentUserService.getCurrentUser().id")
+    @CacheEvict(value = "cards", allEntries = true)
     public CardIssueResponse createCard(CreateCardRequest request) {
         User currentUser = currentUserService.getCurrentUser();
         Account account = accountService.getAccountEntityById(request.accountId());
@@ -147,30 +147,8 @@ public class CardService {
         return mapToResponse(getCardEntityById(cardId));
     }
 
-    public Card getCardEntityById(Long cardId) {
-        User user = currentUserService.getCurrentUser();
-
-        Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> {
-                    log.warn("CARD_NOT_FOUND cardId={}", cardId);
-                    return new CardNotFoundException(cardId);
-                });
-
-        boolean isOwner = card.getUser().getId().equals(user.getId());
-        boolean isAdmin = user.getRole() == UserRole.ADMIN;
-
-        if (!isOwner && !isAdmin) {
-            log.error("CARD_ACCESS_DENIED userId={} cardId={}",
-                    user.getId(), cardId
-            );
-            throw new AccessDeniedException("You are not allowed to access this card");
-        }
-
-        return card;
-    }
-
     @Transactional
-    @CacheEvict(value = "cards", key = "@currentUserService.getCurrentUser().id")
+    @CacheEvict(value = "cards", allEntries = true)
     public CardResponse blockCard(Long cardId) {
         log.info("CARD_BLOCK_START cardId={}", cardId);
         Card card = getCardEntityById(cardId);
@@ -189,7 +167,7 @@ public class CardService {
     }
 
     @Transactional
-    @CacheEvict(value = "cards", key = "@currentUserService.getCurrentUser().id")
+    @CacheEvict(value = "cards", allEntries = true)
     public CardResponse unblockCard(Long cardId) {
         log.info("CARD_UNBLOCK_START cardId={}", cardId);
         Card card = getCardEntityById(cardId);
@@ -208,29 +186,7 @@ public class CardService {
     }
 
     public BigDecimal getCardBalance(Long cardId) {
-        User user = currentUserService.getCurrentUser();
-
-        log.debug("GET_CARD_BALANCE_START userId={} cardId={}",
-                user.getId(), cardId
-        );
-
-        Card card = cardRepository.findById(cardId)
-                .orElseThrow(() -> {
-                    log.warn("CARD_NOT_FOUND cardId={}", cardId);
-                    return new CardNotFoundException(cardId);
-                });
-
-        boolean isOwner = card.getUser().getId().equals(user.getId());
-        boolean isAdmin = user.getRole() == UserRole.ADMIN;
-
-        if (!isOwner && !isAdmin) {
-            log.error("CARD_BALANCE_ACCESS_DENIED userId={} cardId={}",
-                    user.getId(), cardId
-            );
-            throw new AccessDeniedException("You are not allowed to access this card");
-        }
-
-        log.info("GET_CARD_BALANCE_SUCCESS cardId={}", cardId);
+        Card card = getCardEntityById(cardId);
 
         return accountService
                 .getAccountEntityById(card.getAccount().getId())
@@ -390,23 +346,21 @@ public class CardService {
     }
 
     @Transactional
-    @CacheEvict(value = "cards", key = "@currentUserService.getCurrentUser().id")
+    @CacheEvict(value = "cards", allEntries = true)
     public void deleteCard(Long cardId) {
-        User currentUser = currentUserService.getCurrentUser();
 
-        log.info("DELETE_CARD_START userId={} cardId={}", currentUser.getId(), cardId);
+        log.info("DELETE_CARD_START cardId={}", cardId);
 
         Card card = getCardEntityById(cardId);
 
         cardRepository.delete(card);
 
-        log.info("DELETE_CARD_SUCCESS userId={} cardId={}", currentUser.getId(), cardId);
+        log.info("DELETE_CARD_SUCCESS cardId={}", cardId);
     }
 
     public Map<String, Object> checkCardExpiry(Long cardId) {
-        User user = currentUserService.getCurrentUser();
 
-        log.debug("CHECK_CARD_EXPIRY userId={} cardId={}", user.getId(), cardId);
+        log.debug("CHECK_CARD_EXPIRY cardId={}", cardId);
 
         Card card = getCardEntityById(cardId);
 
@@ -476,6 +430,28 @@ public class CardService {
         );
 
         return stats;
+    }
+
+    public Card getCardEntityById(Long cardId) {
+        User user = currentUserService.getCurrentUser();
+
+        Card card = cardRepository.findById(cardId)
+                .orElseThrow(() -> {
+                    log.warn("CARD_NOT_FOUND cardId={}", cardId);
+                    return new CardNotFoundException(cardId);
+                });
+
+        boolean isOwner = card.getUser().getId().equals(user.getId());
+        boolean isAdmin = user.getRole() == UserRole.ADMIN;
+
+        if (!isOwner && !isAdmin) {
+            log.error("CARD_ACCESS_DENIED userId={} cardId={}",
+                    user.getId(), cardId
+            );
+            throw new AccessDeniedException("You are not allowed to access this card");
+        }
+
+        return card;
     }
 
     private String maskCardNumber(String cardNumber) {
