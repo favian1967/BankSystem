@@ -16,6 +16,8 @@ import com.company.bank_system.repo.CardRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -43,28 +45,29 @@ public class CardService {
     }
 
     @Transactional
+    @CacheEvict(value = "cards", key = "@currentUserService.getCurrentUser().id")
     public CardIssueResponse createCard(CreateCardRequest request) {
-        User user = currentUserService.getCurrentUser();
+        User currentUser = currentUserService.getCurrentUser();
         Account account = accountService.getAccountEntityById(request.accountId());
 
         log.info("CARD_CREATE_START userId={} accountId={}",
-                user.getId(), account.getId()
+                currentUser.getId(), account.getId()
         );
 
-        if (!account.getUser().getId().equals(user.getId())
-                && user.getRole() != UserRole.ADMIN) {
+        if (!account.getUser().getId().equals(currentUser.getId())
+                && currentUser.getRole() != UserRole.ADMIN) {
 
             log.error("CARD_CREATE_ACCESS_DENIED userId={} accountId={}",
-                    user.getId(), account.getId()
+                    currentUser.getId(), account.getId()
             );
             throw new AccessDeniedException("You cannot create card for this account");
         }
 
         Card card = new Card();
         card.setAccount(account);
-        card.setUser(user);
+        card.setUser(currentUser);
         card.setCardNumber(generateCardNumber());
-        card.setCardHolderName(user.getFirstName() + " " + user.getLastName());
+        card.setCardHolderName(currentUser.getFirstName() + " " + currentUser.getLastName());
 //        card.setCvvHash(generateCvvHash());
         card.setExpiryDate(LocalDate.now().plusYears(5));
         card.setCardType(request.cardType());
@@ -79,7 +82,7 @@ public class CardService {
 
         log.info("CARD_CREATE_SUCCESS cardId={} userId={} cardNumber={}",
                 saved.getId(),
-                user.getId(),
+                currentUser.getId(),
                 maskCardNumber(saved.getCardNumber())
         );
 
@@ -167,9 +170,9 @@ public class CardService {
     }
 
     @Transactional
+    @CacheEvict(value = "cards", key = "@currentUserService.getCurrentUser().id")
     public CardResponse blockCard(Long cardId) {
         log.info("CARD_BLOCK_START cardId={}", cardId);
-
         Card card = getCardEntityById(cardId);
 
         if (card.getStatus() == CardStatus.BLOCKED) {
@@ -186,9 +189,9 @@ public class CardService {
     }
 
     @Transactional
+    @CacheEvict(value = "cards", key = "@currentUserService.getCurrentUser().id")
     public CardResponse unblockCard(Long cardId) {
         log.info("CARD_UNBLOCK_START cardId={}", cardId);
-
         Card card = getCardEntityById(cardId);
 
         if (card.getStatus() == CardStatus.ACTIVE) {
@@ -387,16 +390,17 @@ public class CardService {
     }
 
     @Transactional
+    @CacheEvict(value = "cards", key = "@currentUserService.getCurrentUser().id")
     public void deleteCard(Long cardId) {
-        User user = currentUserService.getCurrentUser();
+        User currentUser = currentUserService.getCurrentUser();
 
-        log.info("DELETE_CARD_START userId={} cardId={}", user.getId(), cardId);
+        log.info("DELETE_CARD_START userId={} cardId={}", currentUser.getId(), cardId);
 
         Card card = getCardEntityById(cardId);
 
         cardRepository.delete(card);
 
-        log.info("DELETE_CARD_SUCCESS userId={} cardId={}", user.getId(), cardId);
+        log.info("DELETE_CARD_SUCCESS userId={} cardId={}", currentUser.getId(), cardId);
     }
 
     public Map<String, Object> checkCardExpiry(Long cardId) {

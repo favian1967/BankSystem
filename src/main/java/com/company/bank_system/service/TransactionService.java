@@ -26,6 +26,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -50,6 +51,7 @@ public class TransactionService {
     }
 
     @Transactional
+    @CacheEvict(value = "accounts", allEntries = true)
     public TransactionResponse deposit(DepositRequest depositRequest, String idemKey) {
         log.info("DEPOSIT_START accountId={} amount={}",
                 depositRequest.accountId(),
@@ -112,6 +114,7 @@ public class TransactionService {
     }
 
     @Transactional
+    @CacheEvict(value = "accounts", allEntries = true)
     public TransactionResponse withdraw(WithdrawRequest withdrawRequest, String idemKey) {
         log.info("WITHDRAW_START accountId={} amount={}",
                 withdrawRequest.accountId(),
@@ -187,6 +190,7 @@ public class TransactionService {
     }
 
     @Transactional
+    @CacheEvict(value = "accounts", allEntries = true)
     public TransactionResponse transfer(TransferRequest transferRequest, String idemKey) {
         log.info("TRANSFER_START fromAccountId={} toAccountNumber={} amount={}",
                 transferRequest.fromAccountId(),

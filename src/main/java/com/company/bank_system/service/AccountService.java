@@ -15,6 +15,7 @@ import com.company.bank_system.repo.AccountRepository;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +36,7 @@ public class AccountService {
         this.currentUserService = currentUserService;
     }
 
+    @CacheEvict(value = "accounts", key = "authentication.name")
     public AccountResponse createAccount(CreateAccountRequest request)  {
         User currentUser = currentUserService.getCurrentUser();
 
@@ -297,6 +299,7 @@ public class AccountService {
     }
 
     @Transactional
+    @CacheEvict(value = "accounts", key = "authentication.name")
     public AccountResponse updateAccountStatus(Long accountId, AccountStatus newStatus) {
         User currentUser = currentUserService.getCurrentUser();
 
@@ -324,6 +327,7 @@ public class AccountService {
     }
 
     @Transactional
+    @CacheEvict(value = "accounts", key = "authentication.name")
     public void closeAccount(Long accountId) {
         User currentUser = currentUserService.getCurrentUser();
 
