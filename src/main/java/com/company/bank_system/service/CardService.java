@@ -45,7 +45,7 @@ public class CardService {
     }
 
     @Transactional
-    @CacheEvict(value = "cards", allEntries = true)
+    @CacheEvict(value = "cards", key = "#root.target.getCurrentUserCacheKey()")
     public CardIssueResponse createCard(CreateCardRequest request) {
         User currentUser = currentUserService.getCurrentUser();
         Account account = accountService.getAccountEntityById(request.accountId());
@@ -100,7 +100,7 @@ public class CardService {
         );
     }
 
-    @Cacheable(value = "cards", key = "@currentUserService.getCurrentUser().id")
+    @Cacheable(value = "cards", key = "#root.target.getCurrentUserCacheKey()")
     public List<CardResponse> getMyCards() {
         User user = currentUserService.getCurrentUser();
 
@@ -148,7 +148,7 @@ public class CardService {
     }
 
     @Transactional
-    @CacheEvict(value = "cards", allEntries = true)
+    @CacheEvict(value = "cards", key = "#root.target.getCurrentUserCacheKey()")
     public CardResponse blockCard(Long cardId) {
         log.info("CARD_BLOCK_START cardId={}", cardId);
         Card card = getCardEntityById(cardId);
@@ -167,7 +167,7 @@ public class CardService {
     }
 
     @Transactional
-    @CacheEvict(value = "cards", allEntries = true)
+    @CacheEvict(value = "cards", key = "#root.target.getCurrentUserCacheKey()")
     public CardResponse unblockCard(Long cardId) {
         log.info("CARD_UNBLOCK_START cardId={}", cardId);
         Card card = getCardEntityById(cardId);
@@ -346,7 +346,7 @@ public class CardService {
     }
 
     @Transactional
-    @CacheEvict(value = "cards", allEntries = true)
+    @CacheEvict(value = "cards", key = "#root.target.getCurrentUserCacheKey()")
     public void deleteCard(Long cardId) {
 
         log.info("DELETE_CARD_START cardId={}", cardId);
@@ -470,5 +470,14 @@ public class CardService {
                 card.getAccount() != null ? card.getAccount().getId() : null,
                 card.getCreatedAt()
         );
+    }
+
+    private Long getCurrentUserId() {
+        return currentUserService.getCurrentUser().getId();
+    }
+
+    @SuppressWarnings("unused")
+    public String getCurrentUserCacheKey() {
+        return currentUserService.getCurrentEmail();
     }
 }

@@ -6,6 +6,7 @@ import com.company.bank_system.dto.ChangePasswordResponse;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.repo.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,7 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @CacheEvict(value = "currentUser", key = "#root.target.getCurrentUserCacheKey()")
     public ChangePasswordResponse changePassword(ChangePasswordRequest changePasswordRequest) {
         User user = currentUserService.getCurrentUser();
 
@@ -54,5 +56,8 @@ public class UserService {
         return new ChangePasswordResponse(
                 user.getEmail(),"Password has been changed"
         );
+    }
+    public String getCurrentUserCacheKey() {
+        return currentUserService.getCurrentEmail();
     }
 }

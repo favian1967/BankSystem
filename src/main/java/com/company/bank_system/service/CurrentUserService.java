@@ -4,6 +4,7 @@ import com.company.bank_system.entity.User;
 import com.company.bank_system.exception.Exceptions.UserNotFoundException;
 import com.company.bank_system.repo.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -36,10 +37,8 @@ public class CurrentUserService {
         return email;
     }
 
-
+    @Cacheable(value = "currentUser", key = "#root.target.getCurrentEmail()")
     public User getCurrentUser() { //get authorized user entity
-        log.debug("GET_CURRENT_USER_START");
-
         String email = getCurrentEmail();
 
         User user = userRepository.findByEmail(email)

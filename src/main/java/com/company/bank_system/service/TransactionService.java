@@ -42,16 +42,17 @@ public class TransactionService {
     private final AccountRepository accountRepository;
     private final TransactionRepository transactionRepository;
     private final IdempotentRepository idempotentRepository;
-
-    public TransactionService(AccountService accountService, AccountRepository accountRepository, TransactionRepository transactionRepository, IdempotentRepository idempotentRepository) {
+    private final CurrentUserService currentUserService;
+    public TransactionService(AccountService accountService, AccountRepository accountRepository, TransactionRepository transactionRepository, IdempotentRepository idempotentRepository, CurrentUserService currentUserService) {
         this.accountService = accountService;
         this.accountRepository = accountRepository;
         this.transactionRepository = transactionRepository;
         this.idempotentRepository = idempotentRepository;
+        this.currentUserService = currentUserService;
     }
 
     @Transactional
-    @CacheEvict(value = "accounts", allEntries = true)
+    @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
     public TransactionResponse deposit(DepositRequest depositRequest, String idemKey) {
         log.info("DEPOSIT_START accountId={} amount={}",
                 depositRequest.accountId(),
@@ -114,7 +115,7 @@ public class TransactionService {
     }
 
     @Transactional
-    @CacheEvict(value = "accounts", allEntries = true)
+    @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
     public TransactionResponse withdraw(WithdrawRequest withdrawRequest, String idemKey) {
         log.info("WITHDRAW_START accountId={} amount={}",
                 withdrawRequest.accountId(),
@@ -190,7 +191,7 @@ public class TransactionService {
     }
 
     @Transactional
-    @CacheEvict(value = "accounts", allEntries = true)
+    @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
     public TransactionResponse transfer(TransferRequest transferRequest, String idemKey) {
         log.info("TRANSFER_START fromAccountId={} toAccountNumber={} amount={}",
                 transferRequest.fromAccountId(),
@@ -361,6 +362,11 @@ public class TransactionService {
         idempotentRepository.deleteAllByCreatedAtBefore(
                 LocalDateTime.now().minusDays(2)
         );
+    }
+
+    @SuppressWarnings("unused")
+    public String getCurrentUserCacheKey() {
+        return currentUserService.getCurrentEmail();
     }
 
 }

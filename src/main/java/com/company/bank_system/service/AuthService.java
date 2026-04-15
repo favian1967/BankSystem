@@ -11,6 +11,7 @@ import com.company.bank_system.repo.EmailConfirmedRepository;
 import com.company.bank_system.repo.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cglib.core.Local;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -148,8 +149,6 @@ public class AuthService {
         if (emailConfirmation.getId() != null && !emailConfirmation.isUsed()
                 && emailConfirmation.getCreated_at() != null) {
             LocalDateTime nextAllowedTime = emailConfirmation.getCreated_at().plusMinutes(1);
-            // Verify nextAllowedTime is after now, but also ensure it's not unreasonably far in the future
-            // which could indicate a timezone mismatch bug locking the user out.
             if (nextAllowedTime.isAfter(now) && emailConfirmation.getCreated_at().isBefore(now.plusMinutes(5))) {
                 log.warn("SEND_EMAIL_KEY_COOLDOWN userId={}", currentUser.getId());
                 throw new InvalidOperationException("Подождите минуту перед повторным запросом кода.");
@@ -174,6 +173,7 @@ public class AuthService {
     }
 
     @Transactional
+    @CacheEvict(value = "currentUser", key = "#root.target.getCurrentUserCacheKey()")
     public boolean isEmailKeyValid(String key){
         User currentUser = currentUserService.getCurrentUser();
         EmailConfirmation emailConfirmation = emailConfirmedRepository.findByUserId(currentUser.getId())
@@ -228,8 +228,6 @@ public class AuthService {
         return true;
     }
 
-
-
     private String maskEmail(String email) {
         int at = email.indexOf("@");
         if (at <= 2) return "***@***";
@@ -241,7 +239,11 @@ public class AuthService {
         return "***" + phone.substring(phone.length() - 3);
     }
 
-    private String generateMailKey(){
+    private String getCurrentUserCacheKey() {
+        return currentUserService.getCurrentEmail();
+    }
+
+    public String generateMailKey(){
         return String.format("%06d", ThreadLocalRandom.current().nextInt(1000000));
     }
 }

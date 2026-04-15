@@ -36,6 +36,7 @@ public class AccountService {
         this.currentUserService = currentUserService;
     }
 
+    @Transactional
     @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
     public AccountResponse createAccount(CreateAccountRequest request)  {
         User currentUser = currentUserService.getCurrentUser();
