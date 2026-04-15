@@ -23,22 +23,19 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
 
     List<Account> findByUser(User user);
 
+    List<Account> findByUserId(Long userId);
+
     Optional<Account> findByAccountNumber(String accountNumber);
 
     boolean existsByAccountNumber(String accountNumber);
 
-    List<Account> findByUserAndAccountType(User user, AccountType accountType);
+    List<Account> findByUserIdAndAccountType(Long userId, AccountType accountType);
 
-    List<Account> findByUserAndCurrency(User user, Currency currency);
+    List<Account> findByUserIdAndCurrency(Long userId, Currency currency);
 
-    List<Account> findByUserAndStatus(User user, AccountStatus status);
+    List<Account> findByUserIdAndStatus(Long userId, AccountStatus status);
 
-    @Query("SELECT a FROM Account a WHERE a.user = :user AND a.status = 'ACTIVE'")
-    List<Account> findActiveAccountsByUser(@Param("user") User user);
-
-    List<Account> findByUserAndAccountTypeAndCurrency(User user, AccountType accountType, Currency currency);
-
-    long countByUser(User user);
+    long countByUserId(Long userId);
 
     long countByUserAndStatus(User user, AccountStatus status);
 

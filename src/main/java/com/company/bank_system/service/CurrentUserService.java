@@ -1,5 +1,6 @@
 package com.company.bank_system.service;
 
+import com.company.bank_system.dto.UserCache;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.exception.Exceptions.UserNotFoundException;
 import com.company.bank_system.repo.UserRepository;
@@ -38,7 +39,7 @@ public class CurrentUserService {
     }
 
     @Cacheable(value = "currentUser", key = "#root.target.getCurrentEmail()")
-    public User getCurrentUser() { //get authorized user entity
+    public UserCache getCurrentUser() { //get authorized user entity
         String email = getCurrentEmail();
 
         User user = userRepository.findByEmail(email)
@@ -53,6 +54,12 @@ public class CurrentUserService {
                 user.getRole()
         );
 
-        return user;
+        return new UserCache(
+                user.getId(),
+                user.getEmail(),
+                user.getRole().name(),
+                user.isConfirmed(),
+                user.getStatus()
+        );
     }
 }

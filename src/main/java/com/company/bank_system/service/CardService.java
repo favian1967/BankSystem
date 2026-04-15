@@ -3,6 +3,7 @@ package com.company.bank_system.service;
 import com.company.bank_system.dto.CardIssueResponse;
 import com.company.bank_system.dto.CardResponse;
 import com.company.bank_system.dto.CreateCardRequest;
+import com.company.bank_system.dto.UserCache;
 import com.company.bank_system.entity.Account;
 import com.company.bank_system.entity.Card;
 import com.company.bank_system.entity.User;
@@ -12,7 +13,9 @@ import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.exception.Exceptions.AccessDeniedException;
 import com.company.bank_system.exception.Exceptions.CardAlreadyBlockedException;
 import com.company.bank_system.exception.Exceptions.CardNotFoundException;
+import com.company.bank_system.exception.Exceptions.UserNotFoundException;
 import com.company.bank_system.repo.CardRepository;
+import com.company.bank_system.repo.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -34,40 +37,42 @@ public class CardService {
     private final CardRepository cardRepository;
     private final AccountService accountService;
     private final CurrentUserService currentUserService;
+    private final UserRepository userRepository;
 
     public CardService(CardRepository cardRepository,
                        AccountService accountService,
-                       CurrentUserService currentUserService
-    ) {
+                       CurrentUserService currentUserService,
+                       UserRepository userRepository) {
         this.cardRepository = cardRepository;
         this.accountService = accountService;
         this.currentUserService = currentUserService;
+        this.userRepository = userRepository;
     }
 
     @Transactional
     @CacheEvict(value = "cards", key = "#root.target.getCurrentUserCacheKey()")
     public CardIssueResponse createCard(CreateCardRequest request) {
-        User currentUser = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
         Account account = accountService.getAccountEntityById(request.accountId());
 
         log.info("CARD_CREATE_START userId={} accountId={}",
-                currentUser.getId(), account.getId()
+                currentUser.id(), account.getId()
         );
 
-        if (!account.getUser().getId().equals(currentUser.getId())
-                && currentUser.getRole() != UserRole.ADMIN) {
+        boolean isOwner = account.getUser().getId().equals(currentUser.id());
+        boolean isAdmin = currentUser.role().equals(UserRole.ADMIN.toString());
 
-            log.error("CARD_CREATE_ACCESS_DENIED userId={} accountId={}",
-                    currentUser.getId(), account.getId()
-            );
+        if (!isOwner && !isAdmin) {
             throw new AccessDeniedException("You cannot create card for this account");
         }
 
+        User user = userRepository.getReferenceById(currentUser.id());
+
         Card card = new Card();
         card.setAccount(account);
-        card.setUser(currentUser);
+        card.setUser(user);
         card.setCardNumber(generateCardNumber());
-        card.setCardHolderName(currentUser.getFirstName() + " " + currentUser.getLastName());
+        card.setCardHolderName(user.getFirstName() + " " + user.getLastName());
 //        card.setCvvHash(generateCvvHash());
         card.setExpiryDate(LocalDate.now().plusYears(5));
         card.setCardType(request.cardType());
@@ -82,13 +87,13 @@ public class CardService {
 
         log.info("CARD_CREATE_SUCCESS cardId={} userId={} cardNumber={}",
                 saved.getId(),
-                currentUser.getId(),
+                currentUser.id(),
                 maskCardNumber(saved.getCardNumber())
         );
 
         return new CardIssueResponse(
                 saved.getId(),
-                maskCardNumber(card.getCardNumber()),
+                maskCardNumber(saved.getCardNumber()),
                 saved.getCardHolderName(),
                 saved.getExpiryDate(),
                 saved.getCardType(),
@@ -102,14 +107,14 @@ public class CardService {
 
     @Cacheable(value = "cards", key = "#root.target.getCurrentUserCacheKey()")
     public List<CardResponse> getMyCards() {
-        User user = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
 
-        log.debug("GET_MY_CARDS userId={}", user.getId());
+        log.debug("GET_MY_CARDS userId={}", currentUser.id());
 
-        List<Card> cards = cardRepository.findByUser(user);
+        List<Card> cards = cardRepository.findByUserId(currentUser.id());
 
         log.info("GET_MY_CARDS_SUCCESS userId={} count={}",
-                user.getId(), cards.size()
+                currentUser.id(), cards.size()
         );
 
         return cards.stream()
@@ -118,15 +123,15 @@ public class CardService {
     }
 
     public List<CardResponse> adminGetCardsByUserId(Long userId) {
-        User currentUser = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
 
         log.info("ADMIN_GET_CARDS_START adminId={} targetUserId={}",
-                currentUser.getId(), userId
+                currentUser.id(), userId
         );
 
-        if (currentUser.getRole() != UserRole.ADMIN) {
+        if (!currentUser.role().equals(UserRole.ADMIN.toString())) {
             log.error("ADMIN_GET_CARDS_ACCESS_DENIED userId={}",
-                    currentUser.getId()
+                    currentUser.id()
             );
             throw new AccessDeniedException("You cannot get cards for this account");
         }
@@ -134,7 +139,7 @@ public class CardService {
         List<Card> cards = cardRepository.findByUserId(userId);
 
         log.info("ADMIN_GET_CARDS_SUCCESS adminId={} count={}",
-                currentUser.getId(), cards.size()
+                currentUser.id(), cards.size()
         );
 
         return cards.stream()
@@ -219,15 +224,15 @@ public class CardService {
     }
 
     public List<CardResponse> getCardsByAccount(Long accountId) {
-        User user = currentUserService.getCurrentUser();
+        UserCache user = currentUserService.getCurrentUser();
         Account account = accountService.getAccountEntityById(accountId);
 
-        log.debug("GET_CARDS_BY_ACCOUNT userId={} accountId={}", user.getId(), accountId);
+        log.debug("GET_CARDS_BY_ACCOUNT userId={} accountId={}", user.id(), accountId);
 
         List<Card> cards = cardRepository.findByAccount(account);
 
         log.info("GET_CARDS_BY_ACCOUNT_SUCCESS userId={} accountId={} count={}",
-                user.getId(), accountId, cards.size()
+                user.id(), accountId, cards.size()
         );
 
         return cards.stream()
@@ -236,14 +241,14 @@ public class CardService {
     }
 
     public List<CardResponse> getCardsByStatus(CardStatus status) {
-        User user = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
 
-        log.debug("GET_CARDS_BY_STATUS userId={} status={}", user.getId(), status);
+        log.debug("GET_CARDS_BY_STATUS userId={} status={}", currentUser.id(), status);
 
-        List<Card> cards = cardRepository.findByUserAndStatus(user, status);
+        List<Card> cards = cardRepository.findByUserIdAndStatus(currentUser.id(), status);
 
         log.info("GET_CARDS_BY_STATUS_SUCCESS userId={} status={} count={}",
-                user.getId(), status, cards.size()
+                currentUser.id(), status, cards.size()
         );
 
         return cards.stream()
@@ -252,14 +257,14 @@ public class CardService {
     }
 
     public List<CardResponse> getCardsByType(CardType type) {
-        User user = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
 
-        log.debug("GET_CARDS_BY_TYPE userId={} type={}", user.getId(), type);
+        log.debug("GET_CARDS_BY_TYPE userId={} type={}", currentUser.id(), type);
 
-        List<Card> cards = cardRepository.findByUserAndCardType(user, type);
+        List<Card> cards = cardRepository.findByUserIdAndCardType(currentUser.id(), type);
 
         log.info("GET_CARDS_BY_TYPE_SUCCESS userId={} type={} count={}",
-                user.getId(), type, cards.size()
+                currentUser.id(), type, cards.size()
         );
 
         return cards.stream()
@@ -268,14 +273,14 @@ public class CardService {
     }
 
     public List<CardResponse> getActiveCards() {
-        User user = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
 
-        log.debug("GET_ACTIVE_CARDS userId={}", user.getId());
+        log.debug("GET_ACTIVE_CARDS userId={}", currentUser.id());
 
-        List<Card> cards = cardRepository.findByUserAndStatus(user, CardStatus.ACTIVE);
+        List<Card> cards = cardRepository.findByUserIdAndStatus(currentUser.id(), CardStatus.ACTIVE);
 
         log.info("GET_ACTIVE_CARDS_SUCCESS userId={} count={}",
-                user.getId(), cards.size()
+                currentUser.id(), cards.size()
         );
 
         return cards.stream()
@@ -284,14 +289,14 @@ public class CardService {
     }
 
     public List<CardResponse> getBlockedCards() {
-        User user = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
 
-        log.debug("GET_BLOCKED_CARDS userId={}", user.getId());
+        log.debug("GET_BLOCKED_CARDS userId={}", currentUser.id());
 
-        List<Card> cards = cardRepository.findByUserAndStatus(user, CardStatus.BLOCKED);
+        List<Card> cards = cardRepository.findByUserIdAndStatus(currentUser.id(), CardStatus.BLOCKED);
 
         log.info("GET_BLOCKED_CARDS_SUCCESS userId={} count={}",
-                user.getId(), cards.size()
+                currentUser.id(), cards.size()
         );
 
         return cards.stream()
@@ -300,14 +305,14 @@ public class CardService {
     }
 
     public List<CardResponse> getExpiredCards() {
-        User user = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
 
-        log.debug("GET_EXPIRED_CARDS userId={}", user.getId());
+        log.debug("GET_EXPIRED_CARDS userId={}", currentUser.id());
 
-        List<Card> cards = cardRepository.findByUserAndExpiryDateBefore(user, LocalDate.now());
+        List<Card> cards = cardRepository.findByUserIdAndExpiryDateBefore(currentUser.id(), LocalDate.now());
 
         log.info("GET_EXPIRED_CARDS_SUCCESS userId={} count={}",
-                user.getId(), cards.size()
+                currentUser.id(), cards.size()
         );
 
         return cards.stream()
@@ -316,30 +321,30 @@ public class CardService {
     }
 
     public long getCardsCount() {
-        User user = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
 
-        log.debug("GET_CARDS_COUNT userId={}", user.getId());
+        log.debug("GET_CARDS_COUNT userId={}", currentUser.id());
 
-        long count = cardRepository.countByUser(user);
+        long count = cardRepository.countByUserId(currentUser.id());
 
         log.info("GET_CARDS_COUNT_SUCCESS userId={} count={}",
-                user.getId(), count
+                currentUser.id(), count
         );
 
         return count;
     }
 
     public long getCardsCountByStatus(CardStatus status) {
-        User user = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
 
         log.debug("GET_CARDS_COUNT_BY_STATUS userId={} status={}",
-                user.getId(), status
+                currentUser.id(), status
         );
 
-        long count = cardRepository.countByUserAndStatus(user, status);
+        long count = cardRepository.countByUserIdAndStatus(currentUser.id(), status);
 
         log.info("GET_CARDS_COUNT_BY_STATUS_SUCCESS userId={} status={} count={}",
-                user.getId(), status, count
+                currentUser.id(), status, count
         );
 
         return count;
@@ -384,19 +389,20 @@ public class CardService {
     }
 
     public List<CardResponse> adminGetAllCards() {
-        User user = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
 
-        log.info("ADMIN_GET_ALL_CARDS adminId={}", user.getId());
+        log.info("ADMIN_GET_ALL_CARDS adminId={}", currentUser.id());
 
-        if (user.getRole() != UserRole.ADMIN) {
-            log.error("ADMIN_GET_ALL_CARDS_ACCESS_DENIED userId={}", user.getId());
+        boolean isAdmin = UserRole.ADMIN.toString().equals(currentUser.role());
+
+        if (!isAdmin) {
             throw new AccessDeniedException("Admin access required");
         }
 
         List<Card> cards = cardRepository.findAll();
 
         log.info("ADMIN_GET_ALL_CARDS_SUCCESS adminId={} count={}",
-                user.getId(), cards.size()
+                currentUser.id(), cards.size()
         );
 
         return cards.stream()
@@ -405,15 +411,15 @@ public class CardService {
     }
 
     public Map<String, Object> adminGetCardStats() {
-        User user = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
 
-        log.info("ADMIN_GET_CARD_STATS adminId={}", user.getId());
+        log.info("ADMIN_GET_CARD_STATS adminId={}", currentUser.id());
 
-        if (user.getRole() != UserRole.ADMIN) {
-            log.error("ADMIN_GET_CARD_STATS_ACCESS_DENIED userId={}", user.getId());
+        boolean isAdmin = UserRole.ADMIN.toString().equals(currentUser.role());
+
+        if (!isAdmin) {
             throw new AccessDeniedException("Admin access required");
         }
-
         long totalCards = cardRepository.count();
         long activeCards = cardRepository.countByStatus(CardStatus.ACTIVE);
         long blockedCards = cardRepository.countByStatus(CardStatus.BLOCKED);
@@ -426,14 +432,14 @@ public class CardService {
         stats.put("expiredCards", expiredCards);
 
         log.info("ADMIN_GET_CARD_STATS_SUCCESS adminId={} total={} active={} blocked={} expired={}",
-                user.getId(), totalCards, activeCards, blockedCards, expiredCards
+                currentUser.id(), totalCards, activeCards, blockedCards, expiredCards
         );
 
         return stats;
     }
 
     public Card getCardEntityById(Long cardId) {
-        User user = currentUserService.getCurrentUser();
+        UserCache currentUser = currentUserService.getCurrentUser();
 
         Card card = cardRepository.findById(cardId)
                 .orElseThrow(() -> {
@@ -441,12 +447,12 @@ public class CardService {
                     return new CardNotFoundException(cardId);
                 });
 
-        boolean isOwner = card.getUser().getId().equals(user.getId());
-        boolean isAdmin = user.getRole() == UserRole.ADMIN;
+        boolean isOwner = card.getUser().getId().equals(currentUser.id());
+        boolean isAdmin = currentUser.role().equals(UserRole.ADMIN.toString());
 
         if (!isOwner && !isAdmin) {
             log.error("CARD_ACCESS_DENIED userId={} cardId={}",
-                    user.getId(), cardId
+                    currentUser.id(), cardId
             );
             throw new AccessDeniedException("You are not allowed to access this card");
         }
@@ -470,10 +476,6 @@ public class CardService {
                 card.getAccount() != null ? card.getAccount().getId() : null,
                 card.getCreatedAt()
         );
-    }
-
-    private Long getCurrentUserId() {
-        return currentUserService.getCurrentUser().getId();
     }
 
     @SuppressWarnings("unused")

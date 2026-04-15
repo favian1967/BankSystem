@@ -3,6 +3,7 @@ package com.company.bank_system.service;
 
 import com.company.bank_system.dto.ChangePasswordRequest;
 import com.company.bank_system.dto.ChangePasswordResponse;
+import com.company.bank_system.dto.UserCache;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.repo.UserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -26,37 +27,37 @@ public class UserService {
     }
 
     @CacheEvict(value = "currentUser", key = "#root.target.getCurrentUserCacheKey()")
-    public ChangePasswordResponse changePassword(ChangePasswordRequest changePasswordRequest) {
-        User user = currentUserService.getCurrentUser();
+    public ChangePasswordResponse changePassword(ChangePasswordRequest request) {
 
-        String oldPassword = changePasswordRequest.oldPassword();
-        String newPassword = changePasswordRequest.newPassword();
-        String repeatPassword = changePasswordRequest.repeatNewPassword();
+        UserCache currentUser = currentUserService.getCurrentUser();
+
+        User user = userRepository.findById(currentUser.id())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String oldPassword = request.oldPassword();
+        String newPassword = request.newPassword();
+        String repeatPassword = request.repeatNewPassword();
 
         if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
-            return new ChangePasswordResponse(
-                    user.getEmail(), "Old password is incorrect"
-            );
+            return new ChangePasswordResponse(user.getEmail(), "Old password is incorrect");
         }
 
         if (oldPassword.equals(newPassword)) {
-            return new ChangePasswordResponse(
-                    user.getEmail(),"please, use password, which not used before"
-            );
+            return new ChangePasswordResponse(user.getEmail(), "Use a different password");
         }
-        if (!newPassword.equals(repeatPassword)) {
-            return new ChangePasswordResponse(
-                    user.getEmail(),"New passwords do not match"
-            );
 
+        if (!newPassword.equals(repeatPassword)) {
+            return new ChangePasswordResponse(user.getEmail(), "Passwords do not match");
         }
+
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setUpdatedAt(LocalDateTime.now());
+
         userRepository.save(user);
-        return new ChangePasswordResponse(
-                user.getEmail(),"Password has been changed"
-        );
+
+        return new ChangePasswordResponse(user.getEmail(), "Password has been changed");
     }
+
     @SuppressWarnings("unused")
     public String getCurrentUserCacheKey() {
         return currentUserService.getCurrentEmail();

@@ -9,5 +9,4 @@ public record UserCache (
         boolean confirmed,
         UserStatus status
 ) {
-
 }

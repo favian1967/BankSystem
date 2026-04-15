@@ -21,15 +21,15 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     boolean existsByIdAndUserId(Long cardId, Long userId);
 
 
-    List<Card> findByUserAndStatus(User user, CardStatus status);
+    List<Card> findByUserIdAndStatus(Long userId, CardStatus status);
 
-    List<Card> findByUserAndCardType(User user, CardType cardType);
+    List<Card> findByUserIdAndCardType(Long userId, CardType cardType);
 
-    List<Card> findByUserAndExpiryDateBefore(User user, LocalDate date);
+    List<Card> findByUserIdAndExpiryDateBefore(Long userId, LocalDate date);
 
-    long countByUser(User user);
+    long countByUserId(Long userId);
 
-    long countByUserAndStatus(User user, CardStatus status);
+    long countByUserIdAndStatus(Long userId, CardStatus status);
 
     long countByStatus(CardStatus status);
 

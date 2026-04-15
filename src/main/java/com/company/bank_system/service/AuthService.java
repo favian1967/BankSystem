@@ -2,6 +2,7 @@ package com.company.bank_system.service;
 
 import com.company.bank_system.dto.LoginRequest;
 import com.company.bank_system.dto.RegisterRequest;
+import com.company.bank_system.dto.UserCache;
 import com.company.bank_system.entity.EmailConfirmation;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.User.UserRole;
@@ -139,10 +140,10 @@ public class AuthService {
 
     @Transactional
     public void sendEmailKey(){
-        User currentUser = currentUserService.getCurrentUser();
-        log.info("SEND_EMAIL_KEY_START userId={} email={}", currentUser.getId(), currentUser.getEmail());
+        UserCache currentUser = currentUserService.getCurrentUser();
+        log.info("SEND_EMAIL_KEY_START userId={} email={}", currentUser.id(), currentUser.email());
 
-        EmailConfirmation emailConfirmation = emailConfirmedRepository.findByUserId(currentUser.getId())
+        EmailConfirmation emailConfirmation = emailConfirmedRepository.findByUserId(currentUser.id())
                 .orElseGet(EmailConfirmation::new);
 
         LocalDateTime now = LocalDateTime.now();
@@ -150,15 +151,21 @@ public class AuthService {
                 && emailConfirmation.getCreated_at() != null) {
             LocalDateTime nextAllowedTime = emailConfirmation.getCreated_at().plusMinutes(1);
             if (nextAllowedTime.isAfter(now) && emailConfirmation.getCreated_at().isBefore(now.plusMinutes(5))) {
-                log.warn("SEND_EMAIL_KEY_COOLDOWN userId={}", currentUser.getId());
+                log.warn("SEND_EMAIL_KEY_COOLDOWN userId={}", currentUser.id());
                 throw new InvalidOperationException("Подождите минуту перед повторным запросом кода.");
             }
         }
 
         String mailKey = generateMailKey();
-        log.info("Generated mail key for userId={}", currentUser.getId());
+        log.info("Generated mail key for userId={}", currentUser.id());
 
-        emailConfirmation.setUser(currentUser);
+        User userEntity = userRepository.findById(currentUser.id())
+                .orElseThrow(() -> {
+                    log.warn("USER_NOT_FOUND user_id={}", currentUser.id());
+                    return new UserNotFoundException("User not found");
+                });
+
+        emailConfirmation.setUser(userEntity);
         emailConfirmation.setMailKeyHash(passwordEncoder.encode(mailKey));
         emailConfirmation.setCreated_at(now);
         emailConfirmation.setExpires_at(now.plusMinutes(15));
@@ -166,34 +173,34 @@ public class AuthService {
         emailConfirmation.setAttempts(0);
 
         emailConfirmedRepository.save(emailConfirmation);
-        log.info("Saved email confirmation state to DB for userId={}", currentUser.getId());
+        log.info("Saved email confirmation state to DB for userId={}", currentUser.id());
 
-        emailAsyncService.sendRegisterKeyEmail(currentUser.getEmail(), mailKey);
-        log.info("Delegated email sending to async service for email={}", maskEmail(currentUser.getEmail()));
+        emailAsyncService.sendRegisterKeyEmail(currentUser.email(), mailKey);
+        log.info("Delegated email sending to async service for email={}", maskEmail(currentUser.email()));
     }
 
     @Transactional
     @CacheEvict(value = "currentUser", key = "#root.target.getCurrentUserCacheKey()")
     public boolean isEmailKeyValid(String key){
-        User currentUser = currentUserService.getCurrentUser();
-        EmailConfirmation emailConfirmation = emailConfirmedRepository.findByUserId(currentUser.getId())
+        UserCache currentUser = currentUserService.getCurrentUser();
+        EmailConfirmation emailConfirmation = emailConfirmedRepository.findByUserId(currentUser.id())
                 .orElseThrow(() -> {
-                    log.warn("EMAIL_CONFIRMATION_NOT_FOUND user_id={}", currentUser.getId());
-                    return new InvalidOperationException(currentUser.getEmail());
+                    log.warn("EMAIL_CONFIRMATION_NOT_FOUND user_id={}", currentUser.id());
+                    return new InvalidOperationException(currentUser.email());
                 });
 
         String mailKeyHash = emailConfirmation.getMailKeyHash();
 
         if (emailConfirmation.isUsed()) {
             log.warn("EMAIL_CONFIRMATION_FAILED_ALREADY_USED userId={}",
-                    currentUser.getId()
+                    currentUser.id()
             );
             return false;
         }
 
         if (emailConfirmation.getExpires_at().isBefore(LocalDateTime.now())) {
             log.warn("EMAIL_CONFIRMATION_FAILED_EXPIRED userId={} expiresAt={}",
-                    currentUser.getId(),
+                    currentUser.id(),
                     emailConfirmation.getExpires_at()
             );
             return false;
@@ -201,7 +208,7 @@ public class AuthService {
 
         if (emailConfirmation.getAttempts() >= 5) {
             log.warn("EMAIL_CONFIRMATION_FAILED_TOO_MANY_ATTEMPTS userId={} attempts={}",
-                    currentUser.getId(),
+                    currentUser.id(),
                     emailConfirmation.getAttempts()
             );
             return false;
@@ -213,7 +220,7 @@ public class AuthService {
             emailConfirmation.setAttempts(emailConfirmation.getAttempts() + 1);
             emailConfirmedRepository.save(emailConfirmation);
             log.warn("EMAIL_CONFIRMATION_FAILED_BAD_CODE userId={} attempts={}",
-                    currentUser.getId(),
+                    currentUser.id(),
                     emailConfirmation.getAttempts()
             );
             return false;
@@ -222,8 +229,10 @@ public class AuthService {
         emailConfirmation.setUsed(true);
         emailConfirmedRepository.save(emailConfirmation);
 
-        currentUser.setConfirmed(true);
-        userRepository.save(currentUser);
+        User userEntity = userRepository.findById(currentUser.id())
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        userEntity.setConfirmed(true);
+        userRepository.save(userEntity);
 
         return true;
     }
