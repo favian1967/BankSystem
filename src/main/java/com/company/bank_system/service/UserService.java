@@ -57,6 +57,7 @@ public class UserService {
                 user.getEmail(),"Password has been changed"
         );
     }
+    @SuppressWarnings("unused")
     public String getCurrentUserCacheKey() {
         return currentUserService.getCurrentEmail();
     }

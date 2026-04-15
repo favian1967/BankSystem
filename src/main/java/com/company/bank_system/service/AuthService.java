@@ -239,7 +239,8 @@ public class AuthService {
         return "***" + phone.substring(phone.length() - 3);
     }
 
-    private String getCurrentUserCacheKey() {
+    @SuppressWarnings("unused")
+    public String getCurrentUserCacheKey() {
         return currentUserService.getCurrentEmail();
     }
 
