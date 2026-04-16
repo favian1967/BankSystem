@@ -15,11 +15,11 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -30,6 +30,7 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final CurrentUserService currentUserService;
     private final UserRepository userRepository;
+    private static final int ATTEMPTS_FOR_GENERATION_ACC_NUMB = 5;
 
     public AccountService(AccountRepository accountRepository, CurrentUserService currentUserService, UserRepository userRepository) {
         this.accountRepository = accountRepository;
@@ -37,57 +38,36 @@ public class AccountService {
         this.userRepository = userRepository;
     }
 
+    // 1
+
     @Transactional
     @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
     public AccountResponse createAccount(CreateAccountRequest request)  {
-        UserCache currentUser = currentUserService.getCurrentUser();
+        UserCache currentUser = getValidatedCurrentUser();
+        User userEntity = getUserEntityById(currentUser.id());
 
-        if (!currentUser.confirmed()) {
-            throw new UserNotConfirmedException("User is not confirmed");
-        }
+        logAccountCreateStart(currentUser, request);
 
-        User userEntity = userRepository.findById(currentUser.id())
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-
-
-        log.info("ACCOUNT_CREATE_START userId={} type={} currency={}",
-                currentUser.id(),
+        Account account = Account.create(
+                userEntity,
                 request.accountType(),
-                request.currency()
+                request.currency(),
+                generateAccountNumber()
         );
+        Account saved = saveWithUniqueNumber(account);
 
-        Account account = new Account();
-        account.setUser(userEntity);
-        account.setAccountNumber(generateAccountNumber());
-        account.setAccountType(request.accountType());
-        account.setCurrency(request.currency());
-        account.setBalance(BigDecimal.ZERO);
-        account.setStatus(AccountStatus.ACTIVE);
-        account.setCreatedAt(LocalDateTime.now());
-
-        Account saved = accountRepository.save(account);
-
-        log.info("ACCOUNT_CREATE_SUCCESS userId={} accountId={} accountNumber={}",
-                currentUser.id(),
-                saved.getId(),
-                maskAccountNumber(saved.getAccountNumber())
-        );
+        logAccountCreateSuccess(currentUser, saved);
 
         return mapToResponse(saved);
     }
 
     @Cacheable(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
     public List<AccountResponse> getMyAccounts() {
-        UserCache currentUser = currentUserService.getCurrentUser();
+        UserCache currentUser = getValidatedCurrentUser();
 
         log.debug("GET_MY_ACCOUNTS userId={}", currentUser.id());
 
         List<Account> accounts = accountRepository.findByUserId(currentUser.id());
-
-        log.info("GET_MY_ACCOUNTS_SUCCESS userId={} count={}",
-                currentUser.id(),
-                accounts.size()
-        );
 
         return accounts.stream()
                 .map(this::mapToResponse)
@@ -95,9 +75,9 @@ public class AccountService {
     }
 
     public AccountResponse getAccountById(Long accountId) {
-        UserCache currentUser = currentUserService.getCurrentUser();
+        UserCache currentUser = getValidatedCurrentUser();
 
-        Account account = findWithOwnershipCheck(accountId, currentUser.id());
+        Account account = getUserAccountByIdOrThrow(accountId, currentUser.id());
         log.info("GET_ACCOUNT_BY_ID_SUCCESS userId={} accountId={}",
                 currentUser.id(), accountId
         );
@@ -106,8 +86,8 @@ public class AccountService {
     }
 
     public Account getAccountEntityById(Long accountId) {
-        Long userId = currentUserService.getCurrentUser().id();
-        return findWithOwnershipCheck(accountId, userId);
+        Long userId = getValidatedCurrentUser().id();
+        return getUserAccountByIdOrThrow(accountId, userId);
     }
 
     public Account getAnyAccountById(Long accountId) {
@@ -153,25 +133,12 @@ public class AccountService {
     }
 
     public AccountResponse getAccountByAccountNumber(String accountNumber) {
-        UserCache currentUser = currentUserService.getCurrentUser();
+        UserCache currentUser = getValidatedCurrentUser();
 
-        Account account = accountRepository.findByAccountNumber(accountNumber)
-                .orElseThrow(() -> {
-                    log.warn("ACCOUNT_NOT_FOUND_BY_NUMBER accountNumber={}",
-                            maskAccountNumber(accountNumber)
-                    );
-                    return new AccountNotFoundException(
-                            AccountNotFoundException.Type.NUMBER,
-                            accountNumber
-                    );
-                });
-
-        if (!account.getUser().getId().equals(currentUser.id())) {
-            log.error("ACCESS_DENIED userId={} accountNumber={}",
-                    currentUser.id(), maskAccountNumber(accountNumber)
-            );
-            throw new AccessDeniedException("Access denied to account");
-        }
+        Account account = getUserAccountByNumberOrThrow(
+                accountNumber,
+                currentUser.id()
+        );
 
         log.info("GET_ACCOUNT_BY_NUMBER_SUCCESS userId={} accountId={}",
                 currentUser.id(), account.getId()
@@ -181,7 +148,7 @@ public class AccountService {
     }
 
     public List<AccountResponse> getAccountsByType(AccountType type) {
-        UserCache currentUser = currentUserService.getCurrentUser();
+        UserCache currentUser = getValidatedCurrentUser();
 
         log.debug("GET_ACCOUNTS_BY_TYPE userId={} type={}", currentUser.id(), type);
 
@@ -197,9 +164,7 @@ public class AccountService {
     }
 
     public List<AccountResponse> getAccountsByCurrency(Currency currency) {
-        UserCache currentUser = currentUserService.getCurrentUser();
-
-        log.debug("GET_ACCOUNTS_BY_CURRENCY userId={} currency={}", currentUser.id(), currency);
+        UserCache currentUser = getValidatedCurrentUser();
 
         List<Account> accounts = accountRepository.findByUserIdAndCurrency(currentUser.id(), currency);
 
@@ -213,7 +178,7 @@ public class AccountService {
     }
 
     public List<AccountResponse> getAccountsByStatus(AccountStatus status) {
-        UserCache currentUser = currentUserService.getCurrentUser();
+        UserCache currentUser = getValidatedCurrentUser();
 
         log.debug("GET_ACCOUNTS_BY_STATUS userId={} status={}", currentUser.id(), status);
 
@@ -229,10 +194,7 @@ public class AccountService {
     }
 
     public BigDecimal getAccountBalance(Long accountId) {
-        UserCache currentUser = currentUserService.getCurrentUser();
-
-        log.debug("GET_ACCOUNT_BALANCE userId={} accountId={}", currentUser.id(), accountId);
-
+        UserCache currentUser = getValidatedCurrentUser();
         Account account = getAccountEntityById(accountId);
 
         log.info("GET_ACCOUNT_BALANCE_SUCCESS userId={} accountId={} balance={}",
@@ -243,14 +205,14 @@ public class AccountService {
     }
 
     public BigDecimal getTotalBalanceByCurrency(Currency currency) {
-        UserCache currentUser = currentUserService.getCurrentUser();
+        UserCache currentUser = getValidatedCurrentUser();
 
         log.debug("GET_TOTAL_BALANCE userId={} currency={}", currentUser.id(), currency);
 
         List<Account> accounts = accountRepository.findByUserIdAndCurrency(currentUser.id(), currency);
 
         BigDecimal total = accounts.stream()
-                .filter(acc -> acc.getStatus() == AccountStatus.ACTIVE)
+                .filter(Account::isActive)
                 .map(Account::getBalance)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
@@ -264,21 +226,10 @@ public class AccountService {
     @Transactional
     @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
     public AccountResponse updateAccountStatus(Long accountId, AccountStatus newStatus) {
-        UserCache currentUser = currentUserService.getCurrentUser();
-
-        log.info("UPDATE_ACCOUNT_STATUS_START userId={} accountId={} newStatus={}",
-                currentUser.id(), accountId, newStatus
-        );
-
+        UserCache currentUser = getValidatedCurrentUser();
         Account account = getAccountEntityById(accountId);
 
-        if (account.getStatus() == AccountStatus.CLOSED) {
-            log.error("CANNOT_UPDATE_CLOSED_ACCOUNT accountId={}", accountId);
-            throw new InvalidOperationException("Cannot update status of closed account");
-        }
-
-        account.setStatus(newStatus);
-        account.setUpdatedAt(LocalDateTime.now());
+        account.changeStatus(newStatus);
 
         Account saved = accountRepository.save(account);
 
@@ -292,26 +243,10 @@ public class AccountService {
     @Transactional
     @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
     public void closeAccount(Long accountId) {
-        UserCache currentUser = currentUserService.getCurrentUser();
-
-        log.info("CLOSE_ACCOUNT_START userId={} accountId={}", currentUser.id(), accountId);
-
+        UserCache currentUser = getValidatedCurrentUser();
         Account account = getAccountEntityById(accountId);
 
-        if (account.getBalance().compareTo(BigDecimal.ZERO) != 0) {
-            log.error("CANNOT_CLOSE_ACCOUNT_WITH_BALANCE accountId={} balance={}",
-                    accountId, account.getBalance()
-            );
-            throw new InvalidOperationException("Cannot close account with non-zero balance");
-        }
-
-        if (account.getStatus() == AccountStatus.CLOSED) {
-            log.warn("ACCOUNT_ALREADY_CLOSED accountId={}", accountId);
-            throw new InvalidOperationException("Account is already closed");
-        }
-
-        account.setStatus(AccountStatus.CLOSED);
-        account.setUpdatedAt(LocalDateTime.now());
+        account.close();
 
         accountRepository.save(account);
 
@@ -319,7 +254,7 @@ public class AccountService {
     }
 
     public long getAccountsCount() {
-        UserCache currentUser = currentUserService.getCurrentUser();
+        UserCache currentUser = getValidatedCurrentUser();
 
         log.debug("GET_ACCOUNTS_COUNT userId={}", currentUser.id());
 
@@ -342,7 +277,9 @@ public class AccountService {
         return exists;
     }
 
-    private Account findWithOwnershipCheck(Long accountId, Long userId) {
+    // 2
+
+    private Account getUserAccountByIdOrThrow(Long accountId, Long userId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> {
                     log.warn("ACCOUNT_NOT_FOUND accountId={}", accountId);
@@ -352,28 +289,97 @@ public class AccountService {
                     );
                 });
 
-        if (!account.getUser().getId().equals(userId)) {
-            log.error("ACCESS_DENIED userId={} accountId={}",
-                    userId, accountId);
-            throw new AccessDeniedException("Access denied to account " + accountId);
-        }
+        return checkOwnership(account, userId);
+    }
 
+    private Account getUserAccountByNumberOrThrow(String accountNumber, Long userId) {
+        Account account = accountRepository.findByAccountNumber(accountNumber)
+                .orElseThrow(() -> {
+                    log.warn("ACCOUNT_NOT_FOUND_BY_NUMBER accountNumber={}",
+                            maskAccountNumber(accountNumber)
+                    );
+
+                    return new AccountNotFoundException(
+                            AccountNotFoundException.Type.NUMBER,
+                            accountNumber
+                    );
+                });
+
+        return checkOwnership(account, userId);
+    }
+
+    private Account checkOwnership(Account account, Long userId) {
+        if (!account.getUser().getId().equals(userId)) {
+            log.error("ACCESS_DENIED userId={} accountNumber={}",
+                    userId, maskAccountNumber(account.getAccountNumber())
+            );
+            throw new AccessDeniedException("Access denied to account");
+        }
         return account;
     }
 
-    private String generateAccountNumber() {
-        String accountNumber;
+    private UserCache getValidatedCurrentUser(){
+        UserCache currentUser = currentUserService.getCurrentUser();
 
-        do {
-            String prefix = "99999999";
-            long randomPart = ThreadLocalRandom.current()
-                    .nextLong(10000000L, 99999999L);
-            accountNumber = prefix + randomPart;
-        } while (accountRepository.existsByAccountNumber(accountNumber));
+        if (!currentUser.confirmed()) {
+            throw new UserNotConfirmedException("User is not confirmed");
+        }
+
+        return currentUser;
+    }
+
+    private User getUserEntityById(Long userId){
+        return userRepository.findUserById(userId)
+                .orElseThrow(
+                        () -> new UserNotFoundException("User not found id: " + userId)
+        );
+    }
+
+    private void logAccountCreateStart(UserCache user, CreateAccountRequest request) {
+        log.info("ACCOUNT_CREATE_START userId={} type={} currency={}",
+                user.id(),
+                request.accountType(),
+                request.currency());
+    }
+
+    private void logAccountCreateSuccess(UserCache user, Account account) {
+        log.info("ACCOUNT_CREATE_SUCCESS userId={} accountId={} accountNumber={}",
+                user.id(),
+                account.getId(),
+                maskAccountNumber(account.getAccountNumber()));
+    }
+
+    //3
+
+
+    private String generateAccountNumber() {
+        String prefix = "99999999";
+        long randomPart = ThreadLocalRandom.current()
+                .nextLong(10000000L, 99999999L);
+
+        String accountNumber = prefix + randomPart;
 
         log.debug("ACCOUNT_NUMBER_GENERATED {}", maskAccountNumber(accountNumber));
 
         return accountNumber;
+    }
+
+    private Account saveWithUniqueNumber(Account account) {
+        int attempts = 0;
+
+        while (attempts < ATTEMPTS_FOR_GENERATION_ACC_NUMB) {
+            try {
+                return accountRepository.save(account);
+            } catch (DataIntegrityViolationException e) {
+                attempts++;
+
+                log.warn("ACCOUNT_NUMBER_CONFLICT retry={}", attempts);
+
+                account.setAccountNumber(generateAccountNumber());
+            }
+        }
+
+        throw new RuntimeException("Failed to generate unique account number after retries");
     }
 
     private AccountResponse mapToResponse(Account account) {
