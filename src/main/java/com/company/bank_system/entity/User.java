@@ -56,7 +56,40 @@ public class User {
     private UserRole role;
 
 //    private String mailKey;
-
     private boolean isConfirmed;
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public static User register(
+            String email,
+            String phone,
+            String firstName,
+            String passwordHash
+    ) {
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Email cannot be empty");
+        }
+        if (phone == null || phone.isBlank()) {
+            throw new IllegalArgumentException("Phone cannot be empty");
+        }
+        if (passwordHash == null || passwordHash.isBlank()) {
+            throw new IllegalArgumentException("Password hash cannot be empty");
+        }
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setFirstName(firstName);
+        user.setPasswordHash(passwordHash);
+        user.setStatus(UserStatus.ACTIVE);
+        user.setRole(UserRole.USER);
+        user.setConfirmed(false);
+        user.setCreatedAt(LocalDateTime.now());
+
+        return user;
+    }
 
 }

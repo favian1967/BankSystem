@@ -73,6 +73,24 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(403).body(error);
     }
 
+    @ExceptionHandler(EmailConfirmationException.class)
+    ResponseEntity<ErrorResponse> handleNotConfirmed(
+            EmailConfirmationException ex,
+            HttpServletRequest request
+    ) {
+
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                409,
+                "Email confirmation conflict",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(409).body(error);
+    }
+
+
     @ExceptionHandler({
             RuntimeException.class,
             Exception.class
@@ -102,8 +120,6 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity.status(status).body(error);
     }
-
-
 
 
 
