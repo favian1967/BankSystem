@@ -53,37 +53,18 @@ public class CardService {
     @CacheEvict(value = "cards", key = "#root.target.getCurrentUserCacheKey()")
     public CardIssueResponse createCard(CreateCardRequest request) {
         UserCache currentUser = currentUserService.getCurrentUser();
+
         Account account = accountService.getAccountEntityById(request.accountId());
 
         log.info("CARD_CREATE_START userId={} accountId={}",
                 currentUser.id(), account.getId()
         );
 
-        boolean isOwner = account.getUser().getId().equals(currentUser.id());
-        boolean isAdmin = currentUser.role().equals(UserRole.ADMIN.toString());
+        validateCardAccess(currentUser, account);
 
-        if (!isOwner && !isAdmin) {
-            throw new AccessDeniedException("You cannot create card for this account");
-        }
-
-        User user = userRepository.getReferenceById(currentUser.id());
-
-        Card card = new Card();
-        card.setAccount(account);
-        card.setUser(user);
-        card.setCardNumber(generateCardNumber());
-        card.setCardHolderName(user.getFirstName() + " " + user.getLastName());
-//        card.setCvvHash(generateCvvHash());
-        card.setExpiryDate(LocalDate.now().plusYears(5));
-        card.setCardType(request.cardType());
-        card.setPaymentSystem(request.paymentSystem());
-        card.setStatus(CardStatus.ACTIVE);
-        card.setCreatedAt(LocalDateTime.now());
-        card.setUpdatedAt(LocalDateTime.now());
-        String cvv = generateCvv();
+        Card card = buildCard(request, currentUser, account);
 
         Card saved = cardRepository.save(card);
-
 
         log.info("CARD_CREATE_SUCCESS cardId={} userId={} cardNumber={}",
                 saved.getId(),
@@ -91,17 +72,52 @@ public class CardService {
                 maskCardNumber(saved.getCardNumber())
         );
 
+        return mapToIssueResponse(saved, card.getCardNumber());
+    }
+
+
+    private void validateCardAccess(UserCache user, Account account) {
+        boolean isOwner = account.getUser().getId().equals(user.id());
+        boolean isAdmin = UserRole.ADMIN.toString().equals(user.role());
+
+        if (!isOwner && !isAdmin) {
+            throw new AccessDeniedException("You cannot create card for this account");
+        }
+    }
+
+    private Card buildCard(CreateCardRequest request, UserCache userCache, Account account) {
+
+        User userRef = userRepository.getReferenceById(userCache.id());
+
+        Card card = new Card();
+        card.setAccount(account);
+        card.setUser(userRef);
+        card.setCardNumber(generateCardNumber());
+        card.setCardHolderName(userRef.getFirstName() + " " + userRef.getLastName());
+        card.setExpiryDate(LocalDate.now().plusYears(5));
+        card.setCardType(request.cardType());
+        card.setPaymentSystem(request.paymentSystem());
+        card.setStatus(CardStatus.ACTIVE);
+        card.setCreatedAt(LocalDateTime.now());
+        card.setUpdatedAt(LocalDateTime.now());
+
+        return card;
+    }
+
+    private CardIssueResponse mapToIssueResponse(Card card, String rawCardNumber) {
+        String cvv = generateCvv();
+
         return new CardIssueResponse(
-                saved.getId(),
-                maskCardNumber(saved.getCardNumber()),
-                saved.getCardHolderName(),
-                saved.getExpiryDate(),
-                saved.getCardType(),
-                saved.getPaymentSystem(),
-                saved.getStatus(),
-                saved.getAccount() != null ? card.getAccount().getId() : null,
+                card.getId(),
+                maskCardNumber(rawCardNumber),
+                card.getCardHolderName(),
+                card.getExpiryDate(),
+                card.getCardType(),
+                card.getPaymentSystem(),
+                card.getStatus(),
+                card.getAccount() != null ? card.getAccount().getId() : null,
                 cvv,
-                saved.getCreatedAt()
+                card.getCreatedAt()
         );
     }
 
