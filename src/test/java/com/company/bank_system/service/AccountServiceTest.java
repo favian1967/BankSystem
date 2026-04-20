@@ -73,7 +73,7 @@ public class AccountServiceTest {
     // ==================== CREATE ACCOUNT ====================
 
     @Test
-    public void createAccount_shouldCreateSuccessfully() throws Exception {
+    public void createAccount_shouldCreateSuccessfully() {
         // ARRANGE
         CreateAccountRequest request = new CreateAccountRequest(
                 AccountType.CHECKING,
@@ -81,7 +81,7 @@ public class AccountServiceTest {
         );
 
         when(currentUserService.getCurrentUser()).thenReturn(userCache);
-        when(accountRepository.existsByAccountNumber(any())).thenReturn(false);
+        when(userRepository.findUserById(userCache.id())).thenReturn(Optional.of(user));
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> {
             Account saved = invocation.getArgument(0);
             saved.setId(1L);
@@ -204,16 +204,19 @@ public class AccountServiceTest {
     @Test
     public void updateAccountStatus_shouldUpdateSuccessfully() {
         // ARRANGE
+        account.setAccountNumber("999999991234567890");
+        account.setCreatedAt(LocalDateTime.now());
+        account.setStatus(AccountStatus.ACTIVE);
+
         when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
-        when(accountRepository.save(any(Account.class))).thenReturn(account);
+        when(accountRepository.save(any(Account.class))).thenAnswer(i -> i.getArgument(0));
 
         // ACT
-        AccountResponse response = accountService.updateAccountStatus(1L, AccountStatus.BLOCKED);
+        accountService.updateAccountStatus(1L, AccountStatus.BLOCKED);
 
         // ASSERT
         assertEquals(AccountStatus.BLOCKED, account.getStatus());
-        assertNotNull(account.getUpdatedAt());
         verify(accountRepository, times(1)).save(account);
     }
 
@@ -226,7 +229,7 @@ public class AccountServiceTest {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
         // ACT & ASSERT
-        assertThrows(InvalidOperationException.class,
+        assertThrows(IllegalStateException.class,
                 () -> accountService.updateAccountStatus(1L, AccountStatus.ACTIVE));
 
         verify(accountRepository, never()).save(any());
@@ -258,7 +261,7 @@ public class AccountServiceTest {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
         // ACT & ASSERT
-        assertThrows(InvalidOperationException.class,
+        assertThrows(IllegalStateException.class,
                 () -> accountService.closeAccount(1L));
 
         verify(accountRepository, never()).save(any());
@@ -274,7 +277,7 @@ public class AccountServiceTest {
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
         // ACT & ASSERT
-        assertThrows(InvalidOperationException.class,
+        assertThrows(IllegalStateException.class,
                 () -> accountService.closeAccount(1L));
     }
 

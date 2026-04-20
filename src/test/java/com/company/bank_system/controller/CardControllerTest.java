@@ -16,6 +16,7 @@ import com.company.bank_system.repo.AccountRepository;
 import com.company.bank_system.repo.CardRepository;
 import com.company.bank_system.repo.UserRepository;
 import com.company.bank_system.service.JWTService;
+import com.company.bank_system.service.TokenRevocationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,7 +27,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockReset;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.cache.CacheManager;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -44,6 +49,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
 @Testcontainers
 @SpringBootTest
@@ -51,6 +58,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @EmbeddedKafka(partitions = 1, topics = {"ai_messages", "bank_ai_answers"})
 class CardControllerTest {
+    @MockitoBean(reset = MockReset.BEFORE)
+    private TokenRevocationService tokenRevocationService;
 
     private final MockMvc mockMvc;
     private final CardRepository cardRepository;
@@ -59,6 +68,7 @@ class CardControllerTest {
     private final JWTService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
+    private final CacheManager cacheManager;
 
     @Autowired
     CardControllerTest(
@@ -68,7 +78,8 @@ class CardControllerTest {
             UserRepository userRepository,
             JWTService jwtService,
             PasswordEncoder passwordEncoder,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            CacheManager cacheManager
     ) {
         this.mockMvc = mockMvc;
         this.cardRepository = cardRepository;
@@ -77,11 +88,17 @@ class CardControllerTest {
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
+        this.cacheManager = cacheManager;
     }
 
     @Container
     private static final PostgreSQLContainer<?> postgres =
             new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine"));
+
+    @Container
+    private static final GenericContainer<?> redis =
+            new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+                    .withExposedPorts(6379);
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
@@ -89,6 +106,8 @@ class CardControllerTest {
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        registry.add("spring.data.redis.host", redis::getHost);
+        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
     }
 
     private User testUser;
@@ -103,6 +122,8 @@ class CardControllerTest {
 
     @BeforeEach
     void setUp() {
+        cacheManager.getCacheNames().forEach(name -> cacheManager.getCache(name).clear());
+        when(tokenRevocationService.isRevoked(anyString())).thenReturn(false);
         cardRepository.deleteAll();
         accountRepository.deleteAll();
         userRepository.deleteAll();

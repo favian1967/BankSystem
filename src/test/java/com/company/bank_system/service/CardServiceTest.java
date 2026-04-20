@@ -14,6 +14,7 @@ import com.company.bank_system.entity.enums.Cards.CardType;
 import com.company.bank_system.entity.enums.Currency;
 import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.repo.CardRepository;
+import com.company.bank_system.repo.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,12 +47,11 @@ public class CardServiceTest {
     @Mock
     private CurrentUserService currentUserService;
     @Mock
-    private PasswordEncoder passwordEncoder;
+    private UserRepository userRepository;
 
     private User user1;
     private User user2;
     private Account account1;
-    private Account account2;
     private Card card1;
     private Card card2;
 
@@ -67,7 +67,7 @@ public class CardServiceTest {
         user1.setLastName("Doe");
         user1.setRole(UserRole.USER);
 
-        userCache1 = new UserCache(1L, "test@test.com", "ROLE_USER", true, null);
+        userCache1 = new UserCache(1L, "test@test.com", "USER", true, null);
 
         user2 = new  User();
         user2.setId(2L);
@@ -76,9 +76,9 @@ public class CardServiceTest {
         user2.setLastName("Pask");
         user2.setRole(UserRole.ADMIN);
 
-        userCache2 = new UserCache(2L, "fopast@test.com", "ROLE_ADMIN", true, null);
+        userCache2 = new UserCache(2L, "fopast@test.com", "ADMIN", true, null);
 
-        account2 = new Account();
+        Account account2 = new Account();
         account2.setId(2L);
         account2.setUser(user2);
         account2.setAccountNumber("40817123456789012342");
@@ -92,7 +92,6 @@ public class CardServiceTest {
         card2.setUser(user2);
         card2.setCardNumber("1234567890123452");
         card2.setCardHolderName(user2.getFirstName() + user2.getLastName());
-        String cvv2 = "222";
         card2.setExpiryDate(LocalDate.now().plusYears(5));
         card2.setCardType(CardType.DEBIT);
         card2.setPaymentSystem(CardPaymentSystem.VISA);
@@ -115,7 +114,6 @@ public class CardServiceTest {
         card1.setUser(user1);
         card1.setCardNumber("1234567890123456");
         card1.setCardHolderName("John Doe");
-        String cvv1 = "111";
         card1.setExpiryDate(LocalDate.now().plusYears(5));
         card1.setCardType(CardType.DEBIT);
         card1.setPaymentSystem(CardPaymentSystem.VISA);
@@ -140,7 +138,6 @@ public class CardServiceTest {
         savedCard.setUser(user1);
         savedCard.setCardNumber("1234567890123456");
         savedCard.setCardHolderName("John Doe");
-        String cvv3 = "333";
         savedCard.setExpiryDate(LocalDate.now().plusYears(5));
         savedCard.setCardType(CardType.DEBIT);
         savedCard.setPaymentSystem(CardPaymentSystem.VISA);
@@ -150,6 +147,7 @@ public class CardServiceTest {
         when(currentUserService.getCurrentUser()).thenReturn(userCache1);
         when(accountService.getAccountEntityById(request.accountId())).thenReturn(account1);
         when(cardRepository.existsByCardNumber(any())).thenReturn(false);
+        when(userRepository.getReferenceById(anyLong())).thenReturn(user1);
         when(cardRepository.save(any(Card.class))).thenReturn(savedCard);
 
         //ACT
@@ -188,7 +186,7 @@ public class CardServiceTest {
         when(cardRepository.save(any(Card.class))).thenReturn(card1);
         when(currentUserService.getCurrentUser()).thenReturn(userCache1);
         //ACT
-        CardResponse cardResponse = cardService.blockCard(1L);
+        cardService.blockCard(1L);
         //ASSERT
         assertEquals(CardStatus.BLOCKED, card1.getStatus());
     }
@@ -206,7 +204,7 @@ public class CardServiceTest {
 
         // admin cards
         assertEquals(1, cardResponses.size());
-        assertEquals(cards.get(0).getUser(), user2);
+        assertEquals(cards.getFirst().getUser(), user2);
 
     }
 
@@ -224,7 +222,7 @@ public class CardServiceTest {
 
         // user cards
         assertEquals(1, cardResponses.size());
-        assertEquals(cards.get(0).getUser(), user1);
+        assertEquals(cards.getFirst().getUser(), user1);
 
     }
 }

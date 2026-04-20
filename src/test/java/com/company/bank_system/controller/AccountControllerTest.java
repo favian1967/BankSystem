@@ -28,6 +28,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.cache.CacheManager;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -64,16 +66,18 @@ class AccountControllerTest {
     private final JWTService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
+    private final CacheManager cacheManager;
 
 
     @Autowired
-    AccountControllerTest(MockMvc mockMvc, AccountRepository accountRepository, UserRepository userRepository, JWTService jwtService, PasswordEncoder passwordEncoder, ObjectMapper objectMapper) {
+    AccountControllerTest(MockMvc mockMvc, AccountRepository accountRepository, UserRepository userRepository, JWTService jwtService, PasswordEncoder passwordEncoder, ObjectMapper objectMapper, CacheManager cacheManager) {
         this.mockMvc = mockMvc;
         this.accountRepository = accountRepository;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.objectMapper = objectMapper;
+        this.cacheManager = cacheManager;
     }
 
     @Container
@@ -81,12 +85,19 @@ class AccountControllerTest {
             new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine"))
                     .withDatabaseName("testdb");
 
+    @Container
+    private static final GenericContainer<?> redis =
+            new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+                    .withExposedPorts(6379);
+
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        registry.add("spring.data.redis.host", redis::getHost);
+        registry.add("spring.data.redis.port", redis::getFirstMappedPort);
     }
 
     private User testUser;
@@ -96,6 +107,7 @@ class AccountControllerTest {
 
     @BeforeEach
     void setUp() {
+        cacheManager.getCacheNames().forEach(name -> cacheManager.getCache(name).clear());
         when(tokenRevocationService.isRevoked(anyString())).thenReturn(false);
         accountRepository.deleteAll();
         userRepository.deleteAll();
