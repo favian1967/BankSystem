@@ -77,9 +77,9 @@ class AccountControllerTest {
     }
 
     @Container
-    private static final PostgreSQLContainer postgres =
-            new PostgreSQLContainer(DockerImageName.parse("postgres:16-alpine")
-            );
+    private static final PostgreSQLContainer<?> postgres =
+            new PostgreSQLContainer<>(DockerImageName.parse("postgres:16-alpine"))
+                    .withDatabaseName("testdb");
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {

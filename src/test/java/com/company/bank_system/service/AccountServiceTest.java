@@ -12,6 +12,8 @@ import com.company.bank_system.exception.Exceptions.AccessDeniedException;
 import com.company.bank_system.exception.Exceptions.AccountNotFoundException;
 import com.company.bank_system.exception.Exceptions.InvalidOperationException;
 import com.company.bank_system.repo.AccountRepository;
+import com.company.bank_system.repo.UserRepository;
+import com.company.bank_system.dto.UserCache;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +40,11 @@ public class AccountServiceTest {
     @Mock
     private CurrentUserService currentUserService;
 
+    @Mock
+    private UserRepository userRepository;
+
     private User user;
+    private UserCache userCache;
     private Account account;
 
     @BeforeEach
@@ -50,6 +56,8 @@ public class AccountServiceTest {
         user.setLastName("Doe");
         user.setRole(UserRole.USER);
         user.setConfirmed(true);
+
+        userCache = new UserCache(1L, "test@test.com", "ROLE_USER", true, null);
 
         account = new Account();
         account.setId(1L);
@@ -72,7 +80,7 @@ public class AccountServiceTest {
                 Currency.USD
         );
 
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(accountRepository.existsByAccountNumber(any())).thenReturn(false);
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> {
             Account saved = invocation.getArgument(0);
@@ -103,7 +111,7 @@ public class AccountServiceTest {
                 Currency.USD
         );
 
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
 
         // ACT & ASSERT
         assertThrows(Exception.class, () -> accountService.createAccount(request));
@@ -115,7 +123,7 @@ public class AccountServiceTest {
     @Test
     public void getAccountById_shouldReturnAccount() {
         // ARRANGE
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
         // ACT
@@ -131,7 +139,7 @@ public class AccountServiceTest {
     @Test
     public void getAccountById_shouldThrowWhenNotFound() {
         // ARRANGE
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(accountRepository.findById(999L)).thenReturn(Optional.empty());
 
         // ACT & ASSERT
@@ -145,7 +153,8 @@ public class AccountServiceTest {
         otherUser.setId(2L);
         otherUser.setEmail("other@test.com");
 
-        when(currentUserService.getCurrentUser()).thenReturn(otherUser);
+        UserCache otherUserCache = new UserCache(2L, "other@test.com", "ROLE_USER", true, null);
+        when(currentUserService.getCurrentUser()).thenReturn(otherUserCache);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
         // ACT & ASSERT
@@ -166,22 +175,22 @@ public class AccountServiceTest {
         account2.setBalance(new BigDecimal("5000.00"));
         account2.setStatus(AccountStatus.ACTIVE);
 
-        when(currentUserService.getCurrentUser()).thenReturn(user);
-        when(accountRepository.findByUser(user)).thenReturn(List.of(account, account2));
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
+        when(accountRepository.findByUserId(1L)).thenReturn(List.of(account, account2));
 
         // ACT
         List<AccountResponse> responses = accountService.getMyAccounts();
 
         // ASSERT
         assertEquals(2, responses.size());
-        verify(accountRepository, times(1)).findByUser(user);
+        verify(accountRepository, times(1)).findByUserId(1L);
     }
 
     @Test
     public void getMyAccounts_shouldReturnEmptyListWhenNoAccounts() {
         // ARRANGE
-        when(currentUserService.getCurrentUser()).thenReturn(user);
-        when(accountRepository.findByUser(user)).thenReturn(List.of());
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
+        when(accountRepository.findByUserId(1L)).thenReturn(List.of());
 
         // ACT
         List<AccountResponse> responses = accountService.getMyAccounts();
@@ -195,7 +204,7 @@ public class AccountServiceTest {
     @Test
     public void updateAccountStatus_shouldUpdateSuccessfully() {
         // ARRANGE
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(accountRepository.save(any(Account.class))).thenReturn(account);
 
@@ -213,7 +222,7 @@ public class AccountServiceTest {
         // ARRANGE
         account.setStatus(AccountStatus.CLOSED);
 
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
         // ACT & ASSERT
@@ -230,7 +239,7 @@ public class AccountServiceTest {
         // ARRANGE
         account.setBalance(BigDecimal.ZERO);
 
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
         when(accountRepository.save(any(Account.class))).thenReturn(account);
 
@@ -245,7 +254,7 @@ public class AccountServiceTest {
     @Test
     public void closeAccount_shouldFailWithNonZeroBalance() {
         // ARRANGE — account.balance = 1000
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
         // ACT & ASSERT
@@ -261,7 +270,7 @@ public class AccountServiceTest {
         account.setBalance(BigDecimal.ZERO);
         account.setStatus(AccountStatus.CLOSED);
 
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
         // ACT & ASSERT
@@ -274,7 +283,7 @@ public class AccountServiceTest {
     @Test
     public void getAccountBalance_shouldReturnBalance() {
         // ARRANGE
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(accountRepository.findById(1L)).thenReturn(Optional.of(account));
 
         // ACT
@@ -305,8 +314,8 @@ public class AccountServiceTest {
         closedAccount.setBalance(new BigDecimal("200.00"));
         closedAccount.setStatus(AccountStatus.CLOSED);
 
-        when(currentUserService.getCurrentUser()).thenReturn(user);
-        when(accountRepository.findByUserAndCurrency(user, Currency.USD))
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
+        when(accountRepository.findByUserIdAndCurrency(1L, Currency.USD))
                 .thenReturn(List.of(account, account2, closedAccount));
 
         // ACT
@@ -321,8 +330,8 @@ public class AccountServiceTest {
     @Test
     public void getAccountsCount_shouldReturnCount() {
         // ARRANGE
-        when(currentUserService.getCurrentUser()).thenReturn(user);
-        when(accountRepository.countByUser(user)).thenReturn(3L);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
+        when(accountRepository.countByUserId(1L)).thenReturn(3L);
 
         // ACT
         long count = accountService.getAccountsCount();

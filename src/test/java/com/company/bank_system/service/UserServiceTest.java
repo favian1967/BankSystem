@@ -2,8 +2,10 @@ package com.company.bank_system.service;
 
 import com.company.bank_system.dto.ChangePasswordRequest;
 import com.company.bank_system.dto.ChangePasswordResponse;
+import com.company.bank_system.dto.UserCache;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.User.UserRole;
+import com.company.bank_system.entity.enums.User.UserStatus;
 import com.company.bank_system.repo.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,7 @@ public class UserServiceTest {
     private PasswordEncoder passwordEncoder;
 
     private User user;
+    private UserCache userCache;
 
     @BeforeEach
     public void setUp() {
@@ -39,6 +42,14 @@ public class UserServiceTest {
         user.setFirstName("John");
         user.setRole(UserRole.USER);
         user.setPasswordHash("hashedOldPassword");
+
+        userCache = new UserCache(
+                1L,
+                "test@test.com",
+                UserRole.USER.toString(),
+                true,
+                UserStatus.ACTIVE
+        );
     }
 
     @Test
@@ -48,7 +59,7 @@ public class UserServiceTest {
                 "oldPassword", "newPassword123", "newPassword123"
         );
 
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(passwordEncoder.matches("oldPassword", "hashedOldPassword")).thenReturn(true);
         when(passwordEncoder.encode("newPassword123")).thenReturn("hashedNewPassword");
 
@@ -69,7 +80,7 @@ public class UserServiceTest {
                 "wrongOldPassword", "newPassword123", "newPassword123"
         );
 
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(passwordEncoder.matches("wrongOldPassword", "hashedOldPassword")).thenReturn(false);
 
         // ACT
@@ -87,7 +98,7 @@ public class UserServiceTest {
                 "samePassword", "samePassword", "samePassword"
         );
 
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(passwordEncoder.matches("samePassword", "hashedOldPassword")).thenReturn(true);
 
         // ACT
@@ -105,7 +116,7 @@ public class UserServiceTest {
                 "oldPassword", "newPassword123", "differentPassword"
         );
 
-        when(currentUserService.getCurrentUser()).thenReturn(user);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(passwordEncoder.matches("oldPassword", "hashedOldPassword")).thenReturn(true);
 
         // ACT

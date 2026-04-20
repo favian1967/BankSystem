@@ -3,6 +3,7 @@ package com.company.bank_system.service;
 import com.company.bank_system.dto.CardIssueResponse;
 import com.company.bank_system.dto.CardResponse;
 import com.company.bank_system.dto.CreateCardRequest;
+import com.company.bank_system.dto.UserCache;
 import com.company.bank_system.entity.Account;
 import com.company.bank_system.entity.Card;
 import com.company.bank_system.entity.User;
@@ -54,6 +55,9 @@ public class CardServiceTest {
     private Card card1;
     private Card card2;
 
+    private UserCache userCache1;
+    private UserCache userCache2;
+
     @BeforeEach
     public void setUp() {
         user1 = new  User();
@@ -63,12 +67,16 @@ public class CardServiceTest {
         user1.setLastName("Doe");
         user1.setRole(UserRole.USER);
 
+        userCache1 = new UserCache(1L, "test@test.com", "ROLE_USER", true, null);
+
         user2 = new  User();
         user2.setId(2L);
         user2.setEmail("fopast@test.com");
         user2.setFirstName("Favian");
         user2.setLastName("Pask");
         user2.setRole(UserRole.ADMIN);
+
+        userCache2 = new UserCache(2L, "fopast@test.com", "ROLE_ADMIN", true, null);
 
         account2 = new Account();
         account2.setId(2L);
@@ -139,7 +147,7 @@ public class CardServiceTest {
         savedCard.setStatus(CardStatus.ACTIVE);
         savedCard.setCreatedAt(LocalDateTime.now());
 
-        when(currentUserService.getCurrentUser()).thenReturn(user1);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache1);
         when(accountService.getAccountEntityById(request.accountId())).thenReturn(account1);
         when(cardRepository.existsByCardNumber(any())).thenReturn(false);
         when(cardRepository.save(any(Card.class))).thenReturn(savedCard);
@@ -178,7 +186,7 @@ public class CardServiceTest {
         //ARRANGE
         when(cardRepository.findById(1L)).thenReturn(Optional.of(card1));
         when(cardRepository.save(any(Card.class))).thenReturn(card1);
-        when(currentUserService.getCurrentUser()).thenReturn(user1);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache1);
         //ACT
         CardResponse cardResponse = cardService.blockCard(1L);
         //ASSERT
@@ -190,7 +198,7 @@ public class CardServiceTest {
         List<Card> cards = new ArrayList<>();
         cards.add(card2);
 
-        when(currentUserService.getCurrentUser()).thenReturn(user2);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache2);
         when(cardRepository.findByUserId(user2.getId())).thenReturn(cards);
 
         List<CardResponse> cardResponses = cardService.adminGetCardsByUserId(user2.getId());
@@ -208,7 +216,7 @@ public class CardServiceTest {
         List<Card> cards = new ArrayList<>();
         cards.add(card1);
 
-        when(currentUserService.getCurrentUser()).thenReturn(user2);
+        when(currentUserService.getCurrentUser()).thenReturn(userCache2);
         when(cardRepository.findByUserId(user1.getId())).thenReturn(cards);
 
         List<CardResponse> cardResponses = cardService.adminGetCardsByUserId(user1.getId());
