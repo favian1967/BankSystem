@@ -12,7 +12,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "transactions")
+@Table(name = "transactions", indexes = {
+        @Index(name = "idx_tx_from", columnList = "from_account_id"),
+        @Index(name = "idx_tx_to", columnList = "to_account_id"),
+        @Index(name = "idx_tx_created", columnList = "createdAt")
+})
 @Getter
 @Setter
 public class Transaction {
@@ -45,4 +49,27 @@ public class Transaction {
     private LocalDateTime createdAt;
 
     private LocalDateTime completedAt;
+
+    public static Transaction buildTransaction(
+            Account from,
+            Account to,
+            TransactionType type,
+            BigDecimal amount,
+            String description,
+            Currency currency
+    ) {
+        Transaction tx = new Transaction();
+        tx.setFromAccount(from);
+        tx.setToAccount(to);
+        tx.setTransactionType(type);
+        tx.setAmount(amount);
+        tx.setCurrency(currency);
+        tx.setDescription(description);
+        tx.setStatus(TransactionStatus.COMPLETED);
+        tx.setCreatedAt(LocalDateTime.now());
+        tx.setCompletedAt(LocalDateTime.now());
+        return tx;
+    }
+
+
 }

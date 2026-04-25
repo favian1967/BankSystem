@@ -52,249 +52,152 @@ public class TransactionService {
     }
 
     @Transactional
-    @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
-    public TransactionResponse deposit(DepositRequest depositRequest, String idemKey) {
-        log.info("DEPOSIT_START accountId={} amount={}",
-                depositRequest.accountId(),
-                depositRequest.amount()
-        );
+    @CacheEvict(value = "accounts", allEntries = true)
+    public TransactionResponse deposit(DepositRequest req, String idemKey) {
+        log.info("DEPOSIT_START accountId={} amount={}", req.accountId(), req.amount());
 
-        if (depositRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            log.error("DEPOSIT_INVALID_AMOUNT accountId={} amount={}",
-                    depositRequest.accountId(),
-                    depositRequest.amount()
-            );
-            throw new InvalidAmountException("Deposit amount must be greater than 0");
-        }
+        validateAmount(req.amount(), "Deposit");
 
-        IdempotentEntity idem;
-        try {
-            idem = new IdempotentEntity();
-            idem.setAccount(accountRepository.findById(depositRequest.accountId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"))
-            );
-            idem.setIdempotencyKey(idemKey);
-            idem.setStatus(IdempotentStatus.IN_PROGRESS);
-            idem.setCreatedAt(LocalDateTime.now());
-            idempotentRepository.saveAndFlush(idem);
-        } catch (DataIntegrityViolationException e) {
-            throw new IdempotentException(e.getMessage());
-        }
+        IdempotentEntity idem = startIdempotent(req.accountId(), idemKey);
 
-        Account account = accountService.getAnyAccountByIdForUpdate(depositRequest.accountId());
+        Account account = accountService.getAnyAccountByIdForUpdate(req.accountId());
         requireActiveAccount(account);
 
-        BigDecimal newBalance = account.getBalance().add(depositRequest.amount());
-        account.setBalance(newBalance);
-        account.setUpdatedAt(LocalDateTime.now());
+        increaseBalance(account, req.amount());
         accountRepository.save(account);
 
-        Transaction transaction = new Transaction();
-        transaction.setToAccount(account);
-        transaction.setFromAccount(null);
-        transaction.setTransactionType(TransactionType.DEPOSIT);
-        transaction.setAmount(depositRequest.amount());
-        transaction.setCurrency(account.getCurrency());
-        transaction.setDescription(depositRequest.description());
-        transaction.setStatus(TransactionStatus.COMPLETED);
-        transaction.setCreatedAt(LocalDateTime.now());
-        transaction.setCompletedAt(LocalDateTime.now());
-
-        Transaction saved = transactionRepository.save(transaction);
+        Transaction saved = transactionRepository.save(
+                Transaction.buildTransaction(null, account, TransactionType.DEPOSIT,
+                        req.amount(), req.description(), account.getCurrency())
+        );
 
         log.info("DEPOSIT_SUCCESS transactionId={} accountId={} amount={} newBalance={}",
-                saved.getId(),
-                account.getId(),
-                depositRequest.amount(),
-                newBalance
-        );
-        idem.setStatus(IdempotentStatus.SUCCESS);
-        idem.setTransactionId(saved.getId());
-        idempotentRepository.save(idem);
+                saved.getId(), account.getId(), req.amount(), account.getBalance());
+
+        completeIdempotent(idem, saved.getId());
         return mapToResponse(saved);
     }
 
     @Transactional
-    @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
-    public TransactionResponse withdraw(WithdrawRequest withdrawRequest, String idemKey) {
-        log.info("WITHDRAW_START accountId={} amount={}",
-                withdrawRequest.accountId(),
-                withdrawRequest.amount()
-        );
+    @CacheEvict(value = "accounts", allEntries = true)
+    public TransactionResponse withdraw(WithdrawRequest req, String idemKey) {
+        log.info("WITHDRAW_START accountId={} amount={}", req.accountId(), req.amount());
 
-        if (withdrawRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            log.error("WITHDRAW_INVALID_AMOUNT accountId={} amount={}",
-                    withdrawRequest.accountId(),
-                    withdrawRequest.amount()
-            );
-            throw new InvalidAmountException("Withdrawal amount must be greater than 0");
-        }
+        validateAmount(req.amount(), "Withdrawal");
 
-        IdempotentEntity idem;
-        try {
-            idem = new IdempotentEntity();
-            idem.setAccount(accountRepository.findById(withdrawRequest.accountId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"))
-            );
-            idem.setStatus(IdempotentStatus.IN_PROGRESS);
-            idem.setIdempotencyKey(idemKey);
-            idem.setCreatedAt(LocalDateTime.now());
-            idempotentRepository.saveAndFlush(idem);
-        } catch (DataIntegrityViolationException e) {
-            throw new IdempotentException(e.getMessage());
-        }
+        IdempotentEntity idem = startIdempotent(req.accountId(), idemKey);
 
-        Account account = accountService.getAnyAccountByIdForUpdate(withdrawRequest.accountId());
+        Account account = accountService.getAnyAccountByIdForUpdate(req.accountId());
         requireActiveAccount(account);
 
-        if (account.getBalance().compareTo(withdrawRequest.amount()) < 0) {
-            log.warn("WITHDRAW_INSUFFICIENT_FUNDS accountId={} requested={} available={}",
-                    account.getId(),
-                    withdrawRequest.amount(),
-                    account.getBalance()
-            );
-            throw new InsufficientFundsException(
-                    account.getId(),
-                    withdrawRequest.amount(),
-                    account.getBalance()
-            );
-        }
-
-        BigDecimal newBalance = account.getBalance().subtract(withdrawRequest.amount());
-        account.setBalance(newBalance);
-        account.setUpdatedAt(LocalDateTime.now());
+        decreaseBalance(account, req.amount());
         accountRepository.save(account);
 
-        Transaction transaction = new Transaction();
-        transaction.setToAccount(null);
-        transaction.setFromAccount(account);
-        transaction.setTransactionType(TransactionType.WITHDRAW);
-        transaction.setAmount(withdrawRequest.amount());
-        transaction.setCurrency(account.getCurrency());
-        transaction.setDescription(withdrawRequest.description());
-        transaction.setStatus(TransactionStatus.COMPLETED);
-        transaction.setCreatedAt(LocalDateTime.now());
-        transaction.setCompletedAt(LocalDateTime.now());
-
-        Transaction saved = transactionRepository.save(transaction);
+        Transaction saved = transactionRepository.save(
+                Transaction.buildTransaction(account, null, TransactionType.WITHDRAW,
+                        req.amount(), req.description(), account.getCurrency())
+        );
 
         log.info("WITHDRAW_SUCCESS transactionId={} accountId={} amount={} newBalance={}",
-                saved.getId(),
-                account.getId(),
-                withdrawRequest.amount(),
-                newBalance
-        );
-        idem.setStatus(IdempotentStatus.SUCCESS);
-        idem.setTransactionId(saved.getId());
-        idempotentRepository.save(idem);
+                saved.getId(), account.getId(), req.amount(), account.getBalance());
+
+        completeIdempotent(idem, saved.getId());
         return mapToResponse(saved);
     }
 
     @Transactional
-    @CacheEvict(value = "accounts", key = "#root.target.getCurrentUserCacheKey()")
-    public TransactionResponse transfer(TransferRequest transferRequest, String idemKey) {
+    @CacheEvict(value = "accounts", allEntries = true)
+    public TransactionResponse transfer(TransferRequest req, String idemKey) {
         log.info("TRANSFER_START fromAccountId={} toAccountNumber={} amount={}",
-                transferRequest.fromAccountId(),
-                maskAccountNumber(transferRequest.toAccountId()),
-                transferRequest.amount()
-        );
+                req.fromAccountId(), maskAccountNumber(req.toAccountId()), req.amount());
 
-        if (transferRequest.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            log.error("TRANSFER_INVALID_AMOUNT amount={}", transferRequest.amount());
-            throw new InvalidAmountException("Transfer amount must be greater than 0");
-        }
+        validateAmount(req.amount(), "Transfer");
 
-        Account toAccountRef = accountService.getAccountByNumber(transferRequest.toAccountId());
+        Account toAccountRef = accountService.getAccountByNumber(req.toAccountId());
 
-        if (transferRequest.fromAccountId().equals(toAccountRef.getId())) {
-            log.error("TRANSFER_SAME_ACCOUNT accountId={}", transferRequest.fromAccountId());
+        if (req.fromAccountId().equals(toAccountRef.getId())) {
             throw new InvalidAmountException("Cannot transfer to the same account");
         }
 
-        IdempotentEntity idem;
-        try {
-            idem = new IdempotentEntity();
-            idem.setAccount(accountRepository.findById(transferRequest.fromAccountId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"))
-            );
-            idem.setStatus(IdempotentStatus.IN_PROGRESS);
-            idem.setIdempotencyKey(idemKey);
-            idem.setCreatedAt(LocalDateTime.now());
-            idempotentRepository.saveAndFlush(idem);
-        } catch (DataIntegrityViolationException e) {
-            throw new IdempotentException(e.getMessage());
-        }
+        IdempotentEntity idem = startIdempotent(req.fromAccountId(), idemKey);
 
-        Long firstId  = Math.min(transferRequest.fromAccountId(), toAccountRef.getId());
-        Long secondId = Math.max(transferRequest.fromAccountId(), toAccountRef.getId());
+        Long firstId  = Math.min(req.fromAccountId(), toAccountRef.getId());
+        Long secondId = Math.max(req.fromAccountId(), toAccountRef.getId());
 
         Account lockedFirst  = accountService.getAnyAccountByIdForUpdate(firstId);
         Account lockedSecond = accountService.getAnyAccountByIdForUpdate(secondId);
 
-        Account fromAccount = lockedFirst.getId().equals(transferRequest.fromAccountId())
-                ? lockedFirst : lockedSecond;
-        Account toAccount   = lockedFirst.getId().equals(toAccountRef.getId())
-                ? lockedFirst : lockedSecond;
+        Account fromAccount = lockedFirst.getId().equals(req.fromAccountId()) ? lockedFirst : lockedSecond;
+        Account toAccount   = lockedFirst.getId().equals(toAccountRef.getId()) ? lockedFirst : lockedSecond;
 
         requireActiveAccount(fromAccount);
         requireActiveAccount(toAccount);
 
-        if (fromAccount.getBalance().compareTo(transferRequest.amount()) < 0) {
-            log.warn("TRANSFER_INSUFFICIENT_FUNDS accountId={} requested={} available={}",
-                    fromAccount.getId(),
-                    transferRequest.amount(),
-                    fromAccount.getBalance()
-            );
-            throw new InsufficientFundsException(
-                    fromAccount.getId(),
-                    transferRequest.amount(),
-                    fromAccount.getBalance()
-            );
-        }
-
         if (!fromAccount.getCurrency().equals(toAccount.getCurrency())) {
-            log.error("TRANSFER_CURRENCY_MISMATCH fromCurrency={} toCurrency={}",
-                    fromAccount.getCurrency(),
-                    toAccount.getCurrency()
-            );
-            throw new CurrencyMismatchException(
-                    "Currency mismatch: from account has " + fromAccount.getCurrency() +
-                            " but to account has " + toAccount.getCurrency()
-            );
+            throw new CurrencyMismatchException("Currency mismatch: from=" +
+                    fromAccount.getCurrency() + " to=" + toAccount.getCurrency());
         }
 
-        fromAccount.setBalance(fromAccount.getBalance().subtract(transferRequest.amount()));
-        fromAccount.setUpdatedAt(LocalDateTime.now());
-
-        toAccount.setBalance(toAccount.getBalance().add(transferRequest.amount()));
-        toAccount.setUpdatedAt(LocalDateTime.now());
+        decreaseBalance(fromAccount, req.amount());
+        increaseBalance(toAccount, req.amount());
 
         accountRepository.save(fromAccount);
         accountRepository.save(toAccount);
 
-        Transaction transaction = new Transaction();
-        transaction.setFromAccount(fromAccount);
-        transaction.setToAccount(toAccount);
-        transaction.setTransactionType(TransactionType.TRANSFER);
-        transaction.setAmount(transferRequest.amount());
-        transaction.setCurrency(fromAccount.getCurrency());
-        transaction.setDescription(transferRequest.description());
-        transaction.setStatus(TransactionStatus.COMPLETED);
-        transaction.setCreatedAt(LocalDateTime.now());
-        transaction.setCompletedAt(LocalDateTime.now());
-
-        Transaction saved = transactionRepository.save(transaction);
+        Transaction saved = transactionRepository.save(
+                Transaction.buildTransaction(fromAccount, toAccount, TransactionType.TRANSFER,
+                        req.amount(), req.description(), fromAccount.getCurrency())
+        );
 
         log.info("TRANSFER_SUCCESS transactionId={} fromAccountId={} toAccountId={} amount={}",
-                saved.getId(),
-                fromAccount.getId(),
-                toAccount.getId(),
-                transferRequest.amount()
-        );
-        idem.setStatus(IdempotentStatus.SUCCESS);
-        idem.setTransactionId(saved.getId());
-        idempotentRepository.save(idem);
+                saved.getId(), fromAccount.getId(), toAccount.getId(), req.amount());
+
+        completeIdempotent(idem, saved.getId());
         return mapToResponse(saved);
+    }
+
+    private IdempotentEntity startIdempotent(Long accountId, String key) {
+        try {
+            IdempotentEntity idem = new IdempotentEntity();
+            idem.setAccount(accountRepository.getReferenceById(accountId));
+            idem.setIdempotencyKey(key);
+            idem.setStatus(IdempotentStatus.IN_PROGRESS);
+            idem.setCreatedAt(LocalDateTime.now());
+
+            return idempotentRepository.saveAndFlush(idem);
+
+        } catch (DataIntegrityViolationException e) {
+            throw new IdempotentException("Duplicate request");
+        }
+    }
+
+
+
+    private void completeIdempotent(IdempotentEntity idem, Long txId) {
+        idem.setStatus(IdempotentStatus.SUCCESS);
+        idem.setTransactionId(txId);
+        idempotentRepository.save(idem);
+    }
+
+    private void validateAmount(BigDecimal amount, String operation) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new InvalidAmountException(operation + " amount must be > 0");
+        }
+    }
+
+    private void increaseBalance(Account acc, BigDecimal amount) {
+        acc.setBalance(acc.getBalance().add(amount));
+        acc.setUpdatedAt(LocalDateTime.now());
+    }
+
+    private void decreaseBalance(Account acc, BigDecimal amount) {
+        if (acc.getBalance().compareTo(amount) < 0) {
+            log.warn("INSUFFICIENT_FUNDS accountId={} requested={} available={}",
+                    acc.getId(), amount, acc.getBalance());
+            throw new InsufficientFundsException(acc.getId(), amount, acc.getBalance());
+        }
+        acc.setBalance(acc.getBalance().subtract(amount));
+        acc.setUpdatedAt(LocalDateTime.now());
     }
 
     public Page<TransactionResponse> getAccountTransactions(Long accountId, int page, int size) {
