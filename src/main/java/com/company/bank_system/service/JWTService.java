@@ -85,17 +85,24 @@ public class JWTService {
         return role;
     }
 
+    public Date extractExpiration(String token) {
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getExpiration();
+    }
+
     public boolean isValid(String token) {
         log.debug("JWT_VALIDATE_START");
 
         try {
             Jwts.parser().verifyWith(key).build().parseClaimsJws(token);
             log.debug("JWT_VALIDATE_SUCCESS");
-            System.out.println("TOKEN VALID--------------");
             return true;
         } catch (Exception e) {
             log.warn("JWT_VALIDATE_FAILED reason={}", e.getMessage());
-            System.out.println("TOKEN INVALID------------");
             return false;
         }
     }

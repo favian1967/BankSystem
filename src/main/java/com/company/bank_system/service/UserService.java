@@ -5,11 +5,14 @@ import com.company.bank_system.dto.ChangePasswordRequest;
 import com.company.bank_system.dto.ChangePasswordResponse;
 import com.company.bank_system.dto.UserCache;
 import com.company.bank_system.entity.User;
+import com.company.bank_system.exception.Exceptions.InvalidOperationException;
+import com.company.bank_system.exception.Exceptions.UserNotFoundException;
 import com.company.bank_system.repo.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -26,28 +29,29 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional
     @CacheEvict(value = "currentUser", key = "#root.target.getCurrentUserCacheKey()")
     public ChangePasswordResponse changePassword(ChangePasswordRequest request) {
 
         UserCache currentUser = currentUserService.getCurrentUser();
 
         User user = userRepository.findById(currentUser.id())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(UserNotFoundException::new);
 
         String oldPassword = request.oldPassword();
         String newPassword = request.newPassword();
         String repeatPassword = request.repeatNewPassword();
 
+        if (!newPassword.equals(repeatPassword)) {
+            throw new InvalidOperationException("Passwords do not match");
+        }
+
         if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
-            return new ChangePasswordResponse(user.getEmail(), "Old password is incorrect");
+            throw new InvalidOperationException("Old password is incorrect");
         }
 
         if (oldPassword.equals(newPassword)) {
-            return new ChangePasswordResponse(user.getEmail(), "Use a different password");
-        }
-
-        if (!newPassword.equals(repeatPassword)) {
-            return new ChangePasswordResponse(user.getEmail(), "Passwords do not match");
+            throw new InvalidOperationException("Use a different password");
         }
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));

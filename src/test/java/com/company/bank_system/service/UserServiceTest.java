@@ -6,6 +6,7 @@ import com.company.bank_system.dto.UserCache;
 import com.company.bank_system.entity.User;
 import com.company.bank_system.entity.enums.User.UserRole;
 import com.company.bank_system.entity.enums.User.UserStatus;
+import com.company.bank_system.exception.Exceptions.InvalidOperationException;
 import com.company.bank_system.repo.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -85,11 +86,12 @@ public class UserServiceTest {
         when(userRepository.findById(userCache.id())).thenReturn(java.util.Optional.of(user));
         when(passwordEncoder.matches("wrongOldPassword", "hashedOldPassword")).thenReturn(false);
 
-        // ACT
-        ChangePasswordResponse response = userService.changePassword(request);
-
-        // ASSERT
-        assertEquals("Old password is incorrect", response.message());
+        // ACT + ASSERT
+        InvalidOperationException ex = assertThrows(
+                InvalidOperationException.class,
+                () -> userService.changePassword(request)
+        );
+        assertEquals("Old password is incorrect", ex.getMessage());
         verify(userRepository, never()).save(any());
     }
 
@@ -102,16 +104,14 @@ public class UserServiceTest {
 
         when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(userRepository.findById(userCache.id())).thenReturn(java.util.Optional.of(user));
-        // No match checking for old password vs hashed required for this specific failure step, but matches might be checked first
-        // If matches is tested before the equals in the real code, we must mock it.
         when(passwordEncoder.matches("samePassword", "hashedOldPassword")).thenReturn(true);
 
-        // ACT
-        ChangePasswordResponse response = userService.changePassword(request);
-
-        // ASSERT
-        // Based on the code string it returns "Use a different password"
-        assertEquals("Use a different password", response.message());
+        // ACT + ASSERT
+        InvalidOperationException ex = assertThrows(
+                InvalidOperationException.class,
+                () -> userService.changePassword(request)
+        );
+        assertEquals("Use a different password", ex.getMessage());
         verify(userRepository, never()).save(any());
     }
 
@@ -124,14 +124,13 @@ public class UserServiceTest {
 
         when(currentUserService.getCurrentUser()).thenReturn(userCache);
         when(userRepository.findById(userCache.id())).thenReturn(java.util.Optional.of(user));
-        when(passwordEncoder.matches("oldPassword", "hashedOldPassword")).thenReturn(true);
 
-        // ACT
-        ChangePasswordResponse response = userService.changePassword(request);
-
-        // ASSERT
-        // Based on the code string it returns "Passwords do not match"
-        assertEquals("Passwords do not match", response.message());
+        // ACT + ASSERT
+        InvalidOperationException ex = assertThrows(
+                InvalidOperationException.class,
+                () -> userService.changePassword(request)
+        );
+        assertEquals("Passwords do not match", ex.getMessage());
         verify(userRepository, never()).save(any());
     }
 }
