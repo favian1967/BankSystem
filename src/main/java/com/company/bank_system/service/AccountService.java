@@ -20,12 +20,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Slf4j
 public class AccountService {
+
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final AccountRepository accountRepository;
     private final CurrentUserService currentUserService;
@@ -115,6 +117,25 @@ public class AccountService {
                             accountId.toString()
                     );
                 });
+    }
+
+    @Transactional
+    public Account getMyAccountByIdForUpdate(Long accountId) {
+        Long userId = getValidatedCurrentUser().id();
+        Account account = accountRepository.findByIdForUpdate(accountId)
+                .orElseThrow(() -> {
+                    log.warn("ACCOUNT_NOT_FOUND accountId={}", accountId);
+                    return new AccountNotFoundException(
+                            AccountNotFoundException.Type.ID,
+                            accountId.toString()
+                    );
+                });
+        return checkOwnership(account, userId);
+    }
+
+    public void verifyOwnership(Account account) {
+        Long userId = getValidatedCurrentUser().id();
+        checkOwnership(account, userId);
     }
 
     public Account getAccountByNumber(String accountNumber) {
@@ -354,8 +375,7 @@ public class AccountService {
 
     private String generateAccountNumber() {
         String prefix = "99999999";
-        long randomPart = ThreadLocalRandom.current()
-                .nextLong(10000000L, 99999999L);
+        long randomPart = RANDOM.nextLong(10_000_000L, 100_000_000L);
 
         String accountNumber = prefix + randomPart;
 

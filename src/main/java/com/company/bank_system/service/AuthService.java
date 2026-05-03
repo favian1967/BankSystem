@@ -15,12 +15,14 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Slf4j
 public class AuthService {
+
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -327,6 +329,6 @@ public class AuthService {
     }
 
     public String generateMailKey(){
-        return String.format("%06d", ThreadLocalRandom.current().nextInt(1000000));
+        return String.format("%06d", RANDOM.nextInt(1_000_000));
     }
 }

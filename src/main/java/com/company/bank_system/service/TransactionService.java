@@ -60,7 +60,7 @@ public class TransactionService {
 
         IdempotentEntity idem = startIdempotent(req.accountId(), idemKey);
 
-        Account account = accountService.getAnyAccountByIdForUpdate(req.accountId());
+        Account account = accountService.getMyAccountByIdForUpdate(req.accountId());
         requireActiveAccount(account);
 
         increaseBalance(account, req.amount());
@@ -87,7 +87,7 @@ public class TransactionService {
 
         IdempotentEntity idem = startIdempotent(req.accountId(), idemKey);
 
-        Account account = accountService.getAnyAccountByIdForUpdate(req.accountId());
+        Account account = accountService.getMyAccountByIdForUpdate(req.accountId());
         requireActiveAccount(account);
 
         decreaseBalance(account, req.amount());
@@ -129,6 +129,8 @@ public class TransactionService {
 
         Account fromAccount = lockedFirst.getId().equals(req.fromAccountId()) ? lockedFirst : lockedSecond;
         Account toAccount   = lockedFirst.getId().equals(toAccountRef.getId()) ? lockedFirst : lockedSecond;
+
+        accountService.verifyOwnership(fromAccount);
 
         requireActiveAccount(fromAccount);
         requireActiveAccount(toAccount);

@@ -14,6 +14,7 @@ import com.company.bank_system.entity.enums.Currency;
 import com.company.bank_system.entity.enums.Transaction.TransactionStatus;
 import com.company.bank_system.entity.enums.Transaction.TransactionType;
 import com.company.bank_system.entity.enums.User.UserRole;
+import com.company.bank_system.exception.Exceptions.AccessDeniedException;
 import com.company.bank_system.exception.Exceptions.CurrencyMismatchException;
 import com.company.bank_system.exception.Exceptions.InsufficientFundsException;
 import com.company.bank_system.exception.Exceptions.InvalidAmountException;
@@ -29,7 +30,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -93,9 +93,8 @@ public class TransactionServiceTest {
         // ARRANGE
         DepositRequest request = new DepositRequest(1L, new BigDecimal("500.00"), "Test deposit");
 
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
         when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
-        when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
+        when(accountService.getMyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
         when(accountRepository.save(any(Account.class))).thenReturn(fromAccount);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction t = invocation.getArgument(0);
@@ -124,9 +123,8 @@ public class TransactionServiceTest {
         // ARRANGE
         WithdrawRequest request = new WithdrawRequest(1L, new BigDecimal("300.00"), "Test withdrawal");
 
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
         when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
-        when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
+        when(accountService.getMyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
         when(accountRepository.save(any(Account.class))).thenReturn(fromAccount);
         when(transactionRepository.save(any(Transaction.class))).thenAnswer(invocation -> {
             Transaction t = invocation.getArgument(0);
@@ -151,9 +149,8 @@ public class TransactionServiceTest {
         // ARRANGE
         WithdrawRequest request = new WithdrawRequest(1L, new BigDecimal("2000.00"), "Too much");
 
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
         when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
-        when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
+        when(accountService.getMyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
 
         // ACT & ASSERT
         assertThrows(InsufficientFundsException.class,
@@ -184,7 +181,6 @@ public class TransactionServiceTest {
         );
 
         when(accountService.getAccountByNumber("40817840987654321098")).thenReturn(toAccount);
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
         when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
         // Locking: min(1,2)=1 first, then max(1,2)=2
         when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
@@ -222,7 +218,6 @@ public class TransactionServiceTest {
         );
 
         when(accountService.getAccountByNumber("40817840987654321098")).thenReturn(toAccount);
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
         when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
         when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
         when(accountService.getAnyAccountByIdForUpdate(2L)).thenReturn(toAccount);
@@ -250,6 +245,60 @@ public class TransactionServiceTest {
                 () -> transactionService.transfer(request, "idem-key-7"));
     }
 
+    // ==================== IDOR / OWNERSHIP ====================
+
+    @Test
+    public void deposit_shouldRejectForeignAccount() {
+        DepositRequest request = new DepositRequest(99L, new BigDecimal("100.00"), "Foreign deposit");
+
+        when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
+        when(accountService.getMyAccountByIdForUpdate(99L))
+                .thenThrow(new AccessDeniedException("Access denied to account"));
+
+        assertThrows(AccessDeniedException.class,
+                () -> transactionService.deposit(request, "idem-key-foreign-deposit"));
+
+        verify(accountRepository, never()).save(any());
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    public void withdraw_shouldRejectForeignAccount() {
+        WithdrawRequest request = new WithdrawRequest(99L, new BigDecimal("100.00"), "Foreign withdraw");
+
+        when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
+        when(accountService.getMyAccountByIdForUpdate(99L))
+                .thenThrow(new AccessDeniedException("Access denied to account"));
+
+        assertThrows(AccessDeniedException.class,
+                () -> transactionService.withdraw(request, "idem-key-foreign-withdraw"));
+
+        verify(accountRepository, never()).save(any());
+        verify(transactionRepository, never()).save(any());
+    }
+
+    @Test
+    public void transfer_shouldRejectForeignSourceAccount() {
+        TransferRequest request = new TransferRequest(
+                1L, "40817840987654321098", new BigDecimal("200.00"), "Foreign source"
+        );
+
+        when(accountService.getAccountByNumber("40817840987654321098")).thenReturn(toAccount);
+        when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
+        when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
+        when(accountService.getAnyAccountByIdForUpdate(2L)).thenReturn(toAccount);
+        doThrow(new AccessDeniedException("Access denied to account"))
+                .when(accountService).verifyOwnership(fromAccount);
+
+        assertThrows(AccessDeniedException.class,
+                () -> transactionService.transfer(request, "idem-key-foreign-transfer"));
+
+        assertEquals(new BigDecimal("1000.00"), fromAccount.getBalance());
+        assertEquals(new BigDecimal("500.00"), toAccount.getBalance());
+        verify(accountRepository, never()).save(any());
+        verify(transactionRepository, never()).save(any());
+    }
+
     @Test
     public void transfer_shouldFailWithCurrencyMismatch() {
         // ARRANGE
@@ -260,7 +309,6 @@ public class TransactionServiceTest {
         );
 
         when(accountService.getAccountByNumber("40817840987654321098")).thenReturn(toAccount);
-        when(accountRepository.findById(1L)).thenReturn(Optional.of(fromAccount));
         when(idempotentRepository.saveAndFlush(any(IdempotentEntity.class))).thenAnswer(i -> i.getArgument(0));
         when(accountService.getAnyAccountByIdForUpdate(1L)).thenReturn(fromAccount);
         when(accountService.getAnyAccountByIdForUpdate(2L)).thenReturn(toAccount);

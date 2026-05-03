@@ -173,6 +173,22 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleSpringAccessDenied(
+            org.springframework.security.access.AccessDeniedException ex,
+            HttpServletRequest request) {
+
+        ErrorResponse error = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.FORBIDDEN.value(),
+                "Access Denied",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
 
     @ExceptionHandler(InvalidAmountException.class)
     public ResponseEntity<ErrorResponse> handleInvalidAmount(

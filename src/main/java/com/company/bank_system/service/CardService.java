@@ -23,16 +23,18 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 @Slf4j
 public class CardService {
+
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private final CardRepository cardRepository;
     private final AccountService accountService;
@@ -224,8 +226,8 @@ public class CardService {
                 throw new RuntimeException("Cannot generate unique card number");
             }
 
-            long part1 = ThreadLocalRandom.current().nextLong(100000000L, 999999999L);
-            long part2 = ThreadLocalRandom.current().nextLong(10000000L, 99999999L);
+            long part1 = RANDOM.nextLong(100_000_000L, 1_000_000_000L);
+            long part2 = RANDOM.nextLong(1_000_000L, 10_000_000L);
             cardNumber = String.format("%09d%07d", part1, part2);
 
         } while (cardRepository.existsByCardNumber(cardNumber));
@@ -236,7 +238,7 @@ public class CardService {
     }
 
     private String generateCvv() {
-        return String.valueOf(ThreadLocalRandom.current().nextInt(100, 999));
+        return String.format("%03d", RANDOM.nextInt(1000));
     }
 
     public List<CardResponse> getCardsByAccount(Long accountId) {

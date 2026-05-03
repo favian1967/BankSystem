@@ -1,5 +1,6 @@
 package com.company.bank_system.cfg;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +14,7 @@ import java.time.Duration;
 
 @Configuration
 @EnableCaching
+@ConditionalOnProperty(name = "spring.cache.type", havingValue = "redis", matchIfMissing = true)
 public class RedisConfig {
 
     @Bean
