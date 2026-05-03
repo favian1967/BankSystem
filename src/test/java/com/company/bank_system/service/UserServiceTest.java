@@ -31,6 +31,8 @@ public class UserServiceTest {
     private CurrentUserService currentUserService;
     @Mock
     private PasswordEncoder passwordEncoder;
+    @Mock
+    private TokenRevocationService tokenRevocationService;
 
     private User user;
     private UserCache userCache;
@@ -66,13 +68,33 @@ public class UserServiceTest {
         when(passwordEncoder.encode("newPassword123")).thenReturn("hashedNewPassword");
 
         // ACT
-        ChangePasswordResponse response = userService.changePassword(request);
+        ChangePasswordResponse response = userService.changePassword(request, "current-jwt-token");
 
         // ASSERT
         assertEquals("test@test.com", response.email());
         assertEquals("Password has been changed", response.message());
         verify(userRepository, times(1)).save(user);
+        verify(tokenRevocationService, times(1)).revoke("current-jwt-token");
         assertEquals("hashedNewPassword", user.getPasswordHash());
+    }
+
+    @Test
+    public void changePassword_shouldNotRevokeWhenTokenIsNull() {
+        // ARRANGE
+        ChangePasswordRequest request = new ChangePasswordRequest(
+                "oldPassword", "newPassword123", "newPassword123"
+        );
+
+        when(currentUserService.getCurrentUser()).thenReturn(userCache);
+        when(userRepository.findById(userCache.id())).thenReturn(java.util.Optional.of(user));
+        when(passwordEncoder.matches("oldPassword", "hashedOldPassword")).thenReturn(true);
+        when(passwordEncoder.encode("newPassword123")).thenReturn("hashedNewPassword");
+
+        // ACT
+        userService.changePassword(request, null);
+
+        // ASSERT
+        verify(tokenRevocationService, never()).revoke(any());
     }
 
     @Test
@@ -89,7 +111,7 @@ public class UserServiceTest {
         // ACT + ASSERT
         InvalidOperationException ex = assertThrows(
                 InvalidOperationException.class,
-                () -> userService.changePassword(request)
+                () -> userService.changePassword(request, "current-jwt-token")
         );
         assertEquals("Old password is incorrect", ex.getMessage());
         verify(userRepository, never()).save(any());
@@ -109,7 +131,7 @@ public class UserServiceTest {
         // ACT + ASSERT
         InvalidOperationException ex = assertThrows(
                 InvalidOperationException.class,
-                () -> userService.changePassword(request)
+                () -> userService.changePassword(request, "current-jwt-token")
         );
         assertEquals("Use a different password", ex.getMessage());
         verify(userRepository, never()).save(any());
@@ -128,7 +150,7 @@ public class UserServiceTest {
         // ACT + ASSERT
         InvalidOperationException ex = assertThrows(
                 InvalidOperationException.class,
-                () -> userService.changePassword(request)
+                () -> userService.changePassword(request, "current-jwt-token")
         );
         assertEquals("Passwords do not match", ex.getMessage());
         verify(userRepository, never()).save(any());

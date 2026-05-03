@@ -4,16 +4,14 @@ package com.company.bank_system.kafka;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import shared.dto.AiMessageRequest;
 
 import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static org.apache.kafka.common.requests.DeleteAclsResponse.log;
 
 @Service
+@Slf4j
 public class AnswerStore {
 
 //    private final Map<String, String> answers = new ConcurrentHashMap<>();
@@ -32,7 +30,7 @@ public class AnswerStore {
     }
 
     public String getById(String requestId) {
-        String result = answers.getIfPresent(requestId);;
+        String result = answers.getIfPresent(requestId);
         log.info("ANSWER_FETCH requestId={} found={} cacheSize={}",
                 requestId,
                 result != null,

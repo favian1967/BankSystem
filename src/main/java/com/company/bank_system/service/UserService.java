@@ -22,16 +22,21 @@ public class UserService {
     private final UserRepository userRepository;
     private final CurrentUserService currentUserService;
     private final PasswordEncoder passwordEncoder;
+    private final TokenRevocationService tokenRevocationService;
 
-    public UserService(UserRepository userRepository, CurrentUserService currentUserService, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository,
+                       CurrentUserService currentUserService,
+                       PasswordEncoder passwordEncoder,
+                       TokenRevocationService tokenRevocationService) {
         this.userRepository = userRepository;
         this.currentUserService = currentUserService;
         this.passwordEncoder = passwordEncoder;
+        this.tokenRevocationService = tokenRevocationService;
     }
 
     @Transactional
     @CacheEvict(value = "currentUser", key = "#root.target.getCurrentUserCacheKey()")
-    public ChangePasswordResponse changePassword(ChangePasswordRequest request) {
+    public ChangePasswordResponse changePassword(ChangePasswordRequest request, String currentToken) {
 
         UserCache currentUser = currentUserService.getCurrentUser();
 
@@ -58,6 +63,11 @@ public class UserService {
         user.setUpdatedAt(LocalDateTime.now());
 
         userRepository.save(user);
+
+        if (currentToken != null) {
+            tokenRevocationService.revoke(currentToken);
+            log.info("PASSWORD_CHANGED_TOKEN_REVOKED userId={}", user.getId());
+        }
 
         return new ChangePasswordResponse(user.getEmail(), "Password has been changed");
     }

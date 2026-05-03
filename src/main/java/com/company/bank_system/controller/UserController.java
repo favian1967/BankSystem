@@ -3,6 +3,7 @@ package com.company.bank_system.controller;
 import com.company.bank_system.dto.ChangePasswordRequest;
 import com.company.bank_system.dto.ChangePasswordResponse;
 import com.company.bank_system.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -21,8 +22,14 @@ public class UserController {
 
     @PatchMapping("/changePassword")
     public ResponseEntity<ChangePasswordResponse> changePassword(
-            @Valid @RequestBody ChangePasswordRequest request
+            @Valid @RequestBody ChangePasswordRequest request,
+            HttpServletRequest httpRequest
     ) {
-        return ResponseEntity.ok(userService.changePassword(request));
+        String authHeader = httpRequest.getHeader("Authorization");
+        String token = (authHeader != null && authHeader.startsWith("Bearer "))
+                ? authHeader.substring(7)
+                : null;
+
+        return ResponseEntity.ok(userService.changePassword(request, token));
     }
 }
