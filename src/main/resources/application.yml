@@ -81,6 +81,14 @@ app:
     topic:
       messages: ai_messages
       answers: bank_ai_answers
+  mail:
+    # Transactional email is sent via the Brevo HTTP API (port 443), because outbound SMTP
+    # is often blocked by ISPs. Create a free account at brevo.com, verify a sender address,
+    # generate an API key, then set these env vars in .env.
+    brevo:
+      api-key: ${BREVO_API_KEY:}
+      sender-email: ${MAIL_SENDER_EMAIL:}
+      sender-name: ${MAIL_SENDER_NAME:Aurora Bank}
 
 
 jwt:
